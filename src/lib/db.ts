@@ -5,7 +5,10 @@ import path from "node:path";
 const dbUrl =
   process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`;
 
-const adapter = new PrismaLibSql({ url: dbUrl });
+const adapter = new PrismaLibSql({
+  url: dbUrl,
+  ...(process.env.TURSO_AUTH_TOKEN ? { authToken: process.env.TURSO_AUTH_TOKEN } : {}),
+});
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
