@@ -4,7 +4,7 @@ import path from "node:path";
 
 const dbUrl = (
   process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`
-).replace(/^libsql:\/\//, "https://");
+).trim().replace(/^libsql:\/\//, "https://");
 
 const adapter = new PrismaLibSql({
   url: dbUrl,
