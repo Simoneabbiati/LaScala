@@ -1,18 +1,15 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { createClient } from "@libsql/client/web";
 import path from "node:path";
 
 const dbUrl = (
   process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`
 ).replace(/^libsql:\/\//, "https://");
 
-const client = createClient({
+const adapter = new PrismaLibSql({
   url: dbUrl,
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
-
-const adapter = new PrismaLibSql(client);
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
