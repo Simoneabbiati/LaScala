@@ -1,13 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Building2, MapPin, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 type Location = { id: string; name: string };
 type Theatre = {
-  id: string;
-  name: string;
-  city: string;
-  logoUrl?: string;
+  id: string; name: string; city: string;
   locations: Location[];
   _count: { productions: number };
 };
@@ -18,16 +20,13 @@ export default function TheatresPage() {
   const [form, setForm] = useState({ name: "", city: "" });
   const [locationForms, setLocationForms] = useState<Record<string, string>>({});
 
-  const load = () =>
-    fetch("/api/theatres").then((r) => r.json()).then(setTheatres);
-
+  const load = () => fetch("/api/theatres").then((r) => r.json()).then(setTheatres);
   useEffect(() => { load(); }, []);
 
   const createTheatre = async (e: React.FormEvent) => {
     e.preventDefault();
     await fetch("/api/theatres", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
     setForm({ name: "", city: "" });
@@ -45,8 +44,7 @@ export default function TheatresPage() {
     const name = locationForms[theatreId]?.trim();
     if (!name) return;
     await fetch(`/api/theatres/${theatreId}/locations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
     setLocationForms((prev) => ({ ...prev, [theatreId]: "" }));
@@ -55,123 +53,92 @@ export default function TheatresPage() {
 
   const deleteLocation = async (theatreId: string, locationId: string) => {
     await fetch(`/api/theatres/${theatreId}/locations`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      method: "DELETE", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locationId }),
     });
     load();
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Teatri</h1>
-          <p className="text-gray-500 mt-1">Gestisci teatri e le loro sale</p>
+          <h1 className="text-2xl font-bold tracking-tight">Teatri</h1>
+          <p className="text-muted-foreground mt-1">Gestisci teatri e le loro sale</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800"
-        >
+        <Button onClick={() => setShowForm(true)}>
           <Plus size={16} /> Nuovo teatro
-        </button>
+        </Button>
       </div>
 
       {showForm && (
-        <form onSubmit={createTheatre} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-          <h2 className="font-semibold mb-4">Nuovo teatro</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Nome teatro *</label>
-              <input
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                placeholder="Teatro alla Scala"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Città *</label>
-              <input
-                required
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                placeholder="Milano"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              Crea
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-500 px-4 py-2">
-              Annulla
-            </button>
-          </div>
-        </form>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Nuovo teatro</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={createTheatre} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Nome teatro *</label>
+                  <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Teatro alla Scala" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Città *</label>
+                  <Input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Milano" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit">Crea</Button>
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {theatres.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">
-          Nessun teatro ancora. Aggiungine uno.
-        </div>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nessun teatro ancora. Aggiungine uno.</CardContent></Card>
       ) : (
         <div className="space-y-4">
           {theatres.map((t) => (
-            <div key={t.id} className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Building2 size={20} className="text-gray-400" />
-                  <div>
-                    <h2 className="font-semibold text-gray-900">{t.name}</h2>
-                    <p className="text-sm text-gray-500">{t.city} · {t._count.productions} produzioni</p>
+            <Card key={t.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Building2 size={18} className="text-muted-foreground" />
+                    <div>
+                      <CardTitle className="text-base">{t.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-0.5">{t.city} · {t._count.productions} produzioni</p>
+                    </div>
                   </div>
+                  <Button variant="ghost" size="icon" onClick={() => deleteTheatre(t.id)} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 size={15} />
+                  </Button>
                 </div>
-                <button onClick={() => deleteTheatre(t.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              <div className="border-t border-gray-100 pt-4">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sale / Luoghi</h3>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Sale / Luoghi</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {t.locations.map((loc) => (
-                    <span
-                      key={loc.id}
-                      className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full"
-                    >
-                      <MapPin size={11} />
-                      {loc.name}
-                      <button
-                        onClick={() => deleteLocation(t.id, loc.id)}
-                        className="ml-1 text-gray-400 hover:text-red-500"
-                      >
-                        ×
-                      </button>
-                    </span>
+                    <Badge key={loc.id} variant="secondary" className="gap-1 pr-1">
+                      <MapPin size={10} /> {loc.name}
+                      <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive">×</button>
+                    </Badge>
                   ))}
+                  {t.locations.length === 0 && <p className="text-sm text-muted-foreground">Nessuna sala aggiunta.</p>}
                 </div>
-                <div className="flex gap-2">
-                  <input
+                <div className="flex gap-2 max-w-sm">
+                  <Input
                     value={locationForms[t.id] ?? ""}
-                    onChange={(e) =>
-                      setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))
-                    }
+                    onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
                     onKeyDown={(e) => e.key === "Enter" && addLocation(t.id)}
-                    className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-48"
                     placeholder="Nuova sala..."
+                    className="h-8 text-sm"
                   />
-                  <button
-                    onClick={() => addLocation(t.id)}
-                    className="text-sm text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
-                  >
-                    + Aggiungi sala
-                  </button>
+                  <Button size="sm" variant="outline" onClick={() => addLocation(t.id)}>Aggiungi</Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

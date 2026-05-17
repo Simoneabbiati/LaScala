@@ -6,7 +6,12 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const odg = await prisma.odg.findUnique({
     where: { id },
     include: {
-      production: { include: { theatre: { include: { locations: true } } } },
+      production: {
+        include: {
+          theatre: { include: { locations: true } },
+          members: { include: { person: true }, orderBy: [{ department: "asc" }, { roleTitle: "asc" }] },
+        },
+      },
       sessions: { include: { location: true }, orderBy: { sortOrder: "asc" } },
       entries: {
         include: { member: { include: { person: true } }, location: true },
@@ -16,6 +21,12 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   });
   if (!odg) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(odg);
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  await prisma.odg.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

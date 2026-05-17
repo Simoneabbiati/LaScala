@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import AppSidebar from "@/components/AppSidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "ODG — Ordine del Giorno",
@@ -12,12 +14,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it" className={`${geist.variable} h-full antialiased`}>
-      <body className="bg-gray-50 text-gray-900 min-h-full">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 ml-56 p-8 max-w-7xl">{children}</main>
-        </div>
+    <html lang="it" className={geist.variable}>
+      <body>
+        <TooltipProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <main className="p-8 max-w-6xl mx-auto w-full">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -2,27 +2,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type Odg = {
-  id: string;
-  date: string;
+  id: string; date: string;
   production: { id: string; title: string; theatre: { name: string } };
-  _count: { entries: number };
 };
 
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
+const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const DAYS_IT = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 
 function getFirstDayOfMonth(year: number, month: number) {
   const day = new Date(year, month, 1).getDay();
-  return day === 0 ? 6 : day - 1; // Mon=0
+  return day === 0 ? 6 : day - 1;
 }
-
-const MONTHS_IT = [
-  "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-  "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
-];
 
 export default function CalendarPage() {
   const today = new Date();
@@ -43,26 +38,20 @@ export default function CalendarPage() {
       });
   }, []);
 
-  const prev = () => {
-    if (month === 0) { setYear(y => y - 1); setMonth(11); }
-    else setMonth(m => m - 1);
-  };
-  const next = () => {
-    if (month === 11) { setYear(y => y + 1); setMonth(0); }
-    else setMonth(m => m + 1);
-  };
+  const prev = () => { if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1); };
+  const next = () => { if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1); };
 
-  const daysInMonth = getDaysInMonth(year, month);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = getFirstDayOfMonth(year, month);
-  const cells: (number | null)[] = [
-    ...Array(firstDay).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
+  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+
+  // pad to complete last row
+  while (cells.length % 7 !== 0) cells.push(null);
 
   const odgsByDay: Record<number, Odg[]> = {};
   for (const odg of odgs) {
     const d = new Date(odg.date);
-    if (d.getFullYear() === year && d.getMonth() === month) {
+    if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
       const day = d.getUTCDate();
       if (!odgsByDay[day]) odgsByDay[day] = [];
       odgsByDay[day].push(odg);
@@ -72,60 +61,46 @@ export default function CalendarPage() {
   const todayDay = today.getFullYear() === year && today.getMonth() === month ? today.getDate() : null;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold">Calendario</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={prev} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">
-            <ChevronLeft size={16} />
-          </button>
-          <span className="font-semibold w-36 text-center">{MONTHS_IT[month]} {year}</span>
-          <button onClick={next} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">
-            <ChevronRight size={16} />
-          </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={prev}><ChevronLeft size={16} /></Button>
+          <span className="text-sm font-semibold w-36 text-center">{MONTHS_IT[month]} {year}</span>
+          <Button variant="outline" size="icon" onClick={next}><ChevronRight size={16} /></Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-gray-100">
-          {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((d) => (
-            <div key={d} className="px-3 py-2 text-xs font-semibold text-gray-400 text-center">
-              {d}
-            </div>
+        <div className="grid grid-cols-7 border-b bg-muted/40">
+          {DAYS_IT.map((d) => (
+            <div key={d} className="py-2 text-xs font-semibold text-muted-foreground text-center">{d}</div>
           ))}
         </div>
 
-        {/* Calendar grid */}
+        {/* Grid */}
         <div className="grid grid-cols-7">
           {cells.map((day, i) => {
             const dayOdgs = day ? (odgsByDay[day] ?? []) : [];
             const isToday = day === todayDay;
+            const isLastRow = i >= cells.length - 7;
             return (
               <div
                 key={i}
-                className={`min-h-24 border-b border-r border-gray-100 p-2 last:border-r-0 ${
-                  !day ? "bg-gray-50" : ""
-                }`}
+                className={`min-h-24 p-2 border-b border-r border-border/60 ${i % 7 === 6 ? "border-r-0" : ""} ${isLastRow ? "border-b-0" : ""} ${!day ? "bg-muted/20" : ""}`}
               >
                 {day && (
                   <>
-                    <span
-                      className={`text-xs font-medium inline-block mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                        isToday ? "bg-gray-900 text-white" : "text-gray-500"
-                      }`}
-                    >
+                    <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full mb-1 ${isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                       {day}
                     </span>
                     <div className="space-y-1">
                       {dayOdgs.map((odg) => (
-                        <Link
-                          key={odg.id}
-                          href={`/productions/${odg.production.id}/odg/${odg.id}`}
-                          className="block text-xs bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 hover:bg-blue-100 truncate"
-                          title={odg.production.title}
-                        >
-                          {odg.production.title}
+                        <Link key={odg.id} href={`/productions/${odg.production.id}/odg/${odg.id}`}>
+                          <Badge variant="secondary" className="w-full justify-start text-xs font-normal truncate hover:bg-primary/10 cursor-pointer">
+                            {odg.production.title}
+                          </Badge>
                         </Link>
                       ))}
                     </div>
@@ -135,7 +110,7 @@ export default function CalendarPage() {
             );
           })}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

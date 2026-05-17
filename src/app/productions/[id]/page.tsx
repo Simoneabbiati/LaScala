@@ -1,61 +1,48 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronRight, Plus, Trash2, Users } from "lucide-react";
-import { DEPARTMENTS, ACTIVITIES, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
+import { CalendarDays, ChevronRight, ChevronDown, Mail, Pencil, Phone, Plus, Trash2, Users, X, Check } from "lucide-react";
+import { DEPARTMENTS, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
-type Person = { id: string; name: string };
-type Member = {
-  id: string;
-  department: string;
-  roleTitle: string;
-  characterName?: string;
-  notes?: string;
-  person: Person;
-};
+type Person = { id: string; name: string; email?: string; phone?: string };
+type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person };
 type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
-type Odg = { id: string; date: string; _count?: { entries: number } };
-type Production = {
-  id: string;
-  title: string;
-  composer?: string;
-  startDate?: string;
-  endDate?: string;
-  theatre: Theatre;
-  members: Member[];
-  odgs: Odg[];
-};
+type Odg = { id: string; date: string };
+type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[] };
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
+
+type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string };
+type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
+
+const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
 
 export default function ProductionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [production, setProduction] = useState<Production | null>(null);
   const [showMemberForm, setShowMemberForm] = useState(false);
-  const [memberForm, setMemberForm] = useState({
-    personName: "",
-    department: "CAST",
-    roleTitle: "",
-    characterName: "",
-    email: "",
-    phone: "",
-  });
-  const [addingOdg, setAddingOdg] = useState(false);
+  const [memberForm, setMemberForm] = useState({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [odgDate, setOdgDate] = useState("");
+  const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
 
-  const load = () =>
-    fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
-
+  const load = () => fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
   useEffect(() => { load(); }, [id]);
 
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
     await fetch(`/api/productions/${id}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(memberForm),
     });
     setMemberForm({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
@@ -63,23 +50,58 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     load();
   };
 
-  const removeMember = async (memberId: string) => {
-    await fetch(`/api/productions/${id}/members/${memberId}`, { method: "DELETE" });
+  const startEdit = (m: Member) => setEditState({
+    memberId: m.id, personName: m.person.name, department: m.department,
+    roleTitle: m.roleTitle, characterName: m.characterName ?? "", email: m.person.email ?? "", phone: m.person.phone ?? "",
+  });
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editState) return;
+    await fetch(`/api/productions/${id}/members/${editState.memberId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editState),
+    });
+    setEditState(null);
     load();
   };
+
+  const removeMember = (m: Member) => setConfirm({
+    open: true,
+    title: "Rimuovere dal roster?",
+    description: `Rimuovere ${m.person.name} dalla produzione?`,
+    onConfirm: async () => {
+      await fetch(`/api/productions/${id}/members/${m.id}`, { method: "DELETE" });
+      setConfirm(defaultConfirm);
+      load();
+    },
+  });
 
   const createOdg = async () => {
     if (!odgDate) return;
     const res = await fetch(`/api/productions/${id}/odg`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date: odgDate }),
     });
     const odg = await res.json();
     router.push(`/productions/${id}/odg/${odg.id}`);
   };
 
-  if (!production) return <div className="text-gray-400">Caricamento...</div>;
+  const deleteOdg = (odg: Odg) => {
+    const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    setConfirm({
+      open: true,
+      title: "Eliminare ODG?",
+      description: `Eliminare l'ODG del ${dateLabel}? Questa azione è irreversibile.`,
+      onConfirm: async () => {
+        await fetch(`/api/odg/${odg.id}`, { method: "DELETE" });
+        setConfirm(defaultConfirm);
+        load();
+      },
+    });
+  };
+
+  if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
 
   const membersByDept = DEPT_ORDER.reduce<Record<string, Member[]>>((acc, dept) => {
     acc[dept] = production.members.filter((m) => m.department === dept);
@@ -87,217 +109,207 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   }, {});
 
   return (
-    <div>
+    <div className="space-y-6">
+      <ConfirmDialog
+        {...confirm}
+        destructive
+        confirmLabel="Elimina"
+        onCancel={() => setConfirm(defaultConfirm)}
+      />
+
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-            <Link href="/productions" className="hover:text-gray-900">Produzioni</Link>
-            <ChevronRight size={14} />
-            <span>{production.title}</span>
-          </div>
-          <h1 className="text-2xl font-bold">{production.title}</h1>
-          <p className="text-gray-500">
-            {production.composer && <span>{production.composer} · </span>}
-            {production.theatre.name}, {production.theatre.city}
-            {production.startDate && (
-              <span className="ml-2 text-gray-400">
-                {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
-                {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`}
-              </span>
-            )}
-          </p>
+      <div>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1">
+          <Link href="/productions" className="hover:text-foreground">Produzioni</Link>
+          <ChevronRight size={14} />
+          <span>{production.title}</span>
         </div>
+        <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
+        <p className="text-muted-foreground mt-0.5">
+          {production.composer && <span>{production.composer} · </span>}
+          {production.theatre.name}, {production.theatre.city}
+          {production.startDate && (
+            <span className="ml-2">
+              {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+              {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`}
+            </span>
+          )}
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Roster — 2/3 width */}
-        <div className="col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold flex items-center gap-2"><Users size={16} /> Roster</h2>
-            <button
-              onClick={() => setShowMemberForm(!showMemberForm)}
-              className="flex items-center gap-1 text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
-            >
-              <Plus size={14} /> Aggiungi
-            </button>
-          </div>
-
-          {showMemberForm && (
-            <form onSubmit={addMember} className="bg-white border border-gray-200 rounded-xl p-4 mb-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Nome *</label>
-                  <input
-                    required
-                    value={memberForm.personName}
-                    onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                    placeholder="Nome e Cognome"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Dipartimento *</label>
-                  <select
-                    value={memberForm.department}
-                    onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                  >
-                    {DEPARTMENTS.map((d) => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Ruolo / Funzione *</label>
-                  <input
-                    required
-                    value={memberForm.roleTitle}
-                    onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                    placeholder="Direttore d'orchestra"
-                  />
-                </div>
-                {memberForm.department === "CAST" && (
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Personaggio</label>
-                    <input
-                      value={memberForm.characterName}
-                      onChange={(e) => setMemberForm({ ...memberForm, characterName: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                      placeholder="Gulliver"
-                    />
+      <div className="grid grid-cols-2 gap-6">
+        {/* ODG column — left 50% */}
+        <div className="space-y-5">
+          {/* Existing ODGs */}
+          <div>
+            <h2 className="text-base font-bold flex items-center gap-2 mb-3"><CalendarDays size={16} /> Ordini del Giorno</h2>
+            <div className="space-y-2">
+              {production.odgs.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4">Nessun ODG ancora.</p>
+              )}
+              {production.odgs.map((odg) => {
+                const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+                return (
+                  <div key={odg.id} className="group flex items-center rounded-lg border bg-card hover:bg-accent/30 transition-colors">
+                    <Link href={`/productions/${id}/odg/${odg.id}`} className="flex-1 px-4 py-3">
+                      <p className="font-semibold capitalize">{dateLabel}</p>
+                    </Link>
+                    <Button
+                      size="icon" variant="ghost"
+                      className="mr-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                      onClick={() => deleteOdg(odg)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                )}
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={memberForm.email}
-                    onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Telefono</label>
-                  <input
-                    value={memberForm.phone}
-                    onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button type="submit" className="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-sm">
-                  Aggiungi
-                </button>
-                <button type="button" onClick={() => setShowMemberForm(false)} className="text-sm text-gray-500 px-3">
-                  Annulla
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="space-y-3">
-            {DEPT_ORDER.map((dept) => {
-              const members = membersByDept[dept];
-              if (!members?.length) return null;
-              return (
-                <div key={dept} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div
-                    className="px-4 py-2 text-sm font-semibold text-gray-700"
-                    style={{ backgroundColor: DEPT_COLOR[dept] + "55" }}
-                  >
-                    {DEPT_LABEL[dept]}
-                  </div>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Nome</th>
-                        <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Ruolo</th>
-                        {dept === "CAST" && (
-                          <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Personaggio</th>
-                        )}
-                        <th className="w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.map((m) => (
-                        <tr key={m.id} className="border-b border-gray-50 last:border-0">
-                          <td className="px-4 py-2 font-medium">{m.person.name}</td>
-                          <td className="px-4 py-2 text-gray-500 italic text-xs">{m.roleTitle}</td>
-                          {dept === "CAST" && (
-                            <td className="px-4 py-2 text-gray-500 text-xs">{m.characterName ?? "—"}</td>
-                          )}
-                          <td className="px-2 py-2">
-                            <button
-                              onClick={() => removeMember(m.id)}
-                              className="text-gray-200 hover:text-red-400 transition-colors"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
-            {production.members.length === 0 && (
-              <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-gray-200">
-                Nessun membro nel roster ancora.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ODG list — 1/3 width */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold flex items-center gap-2"><CalendarDays size={16} /> Ordini del Giorno</h2>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <p className="text-xs text-gray-500 mb-2">Crea ODG per:</p>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={odgDate}
-                onChange={(e) => setOdgDate(e.target.value)}
-                className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm flex-1"
-              />
-              <button
-                onClick={createOdg}
-                disabled={!odgDate}
-                className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-sm disabled:opacity-40"
-              >
-                Crea
-              </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="space-y-2">
-            {production.odgs.map((odg) => (
-              <Link
-                key={odg.id}
-                href={`/productions/${id}/odg/${odg.id}`}
-                className="block bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-gray-400 transition-colors"
-              >
-                <p className="font-medium text-sm">
-                  {new Date(odg.date).toLocaleDateString("it-IT", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              </Link>
-            ))}
-            {production.odgs.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">Nessun ODG ancora.</p>
+          {/* Create new ODG */}
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Nuovo ordine del giorno</p>
+            <div className="flex gap-2 items-center">
+              <Input
+                type="date"
+                value={odgDate}
+                onChange={(e) => setOdgDate(e.target.value)}
+                min={production.startDate ? production.startDate.slice(0, 10) : undefined}
+                max={production.endDate ? production.endDate.slice(0, 10) : undefined}
+                className="flex-1 bg-background"
+              />
+              <Button disabled={!odgDate} onClick={createOdg} className="shrink-0">
+                <Plus size={15} /> Crea ODG
+              </Button>
+            </div>
+            {production.startDate && (
+              <p className="text-xs text-muted-foreground mt-2.5 flex items-center gap-1.5">
+                <CalendarDays size={11} />
+                Range produzione: {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
+                {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}`}
+              </p>
             )}
           </div>
+        </div>
+
+        {/* Roster — right 50% */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold flex items-center gap-2"><Users size={16} /> Roster</h2>
+            <Button size="sm" variant="outline" onClick={() => setShowMemberForm(!showMemberForm)}>
+              <Plus size={14} /> Aggiungi
+            </Button>
+          </div>
+
+          {showMemberForm && (
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="text-sm">Nuovo membro</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={addMember} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Nome *</label>
+                      <Input required size={1} value={memberForm.personName} onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })} placeholder="Nome e Cognome" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Dipartimento *</label>
+                      <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                        {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Ruolo *</label>
+                      <Input required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} placeholder="Direttore d'orchestra" className="h-8 text-sm" />
+                    </div>
+                    {memberForm.department === "CAST" && (
+                      <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Personaggio</label>
+                        <Input value={memberForm.characterName} onChange={(e) => setMemberForm({ ...memberForm, characterName: e.target.value })} placeholder="Gulliver" className="h-8 text-sm" />
+                      </div>
+                    )}
+                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Email</label>
+                      <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Telefono</label>
+                      <Input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm">Aggiungi</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowMemberForm(false)}>Annulla</Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <div className="divide-y">
+              {production.members.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-8">Nessun membro ancora.</p>
+              )}
+              {DEPT_ORDER.flatMap((dept) =>
+                (membersByDept[dept] ?? []).map((m) => {
+                  const isEditing = editState?.memberId === m.id;
+                  const isExpanded = expandedId === m.id;
+
+                  if (isEditing && editState) {
+                    return (
+                      <div key={m.id} className="p-3 space-y-2 bg-muted/40">
+                        <Input value={editState.personName} onChange={(e) => setEditState({ ...editState, personName: e.target.value })} placeholder="Nome" className="text-sm" />
+                        <select value={editState.department} onChange={(e) => setEditState({ ...editState, department: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
+                          {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                        </select>
+                        <Input value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} placeholder="Ruolo" className="text-sm" />
+                        <Input value={editState.characterName} onChange={(e) => setEditState({ ...editState, characterName: e.target.value })} placeholder="Personaggio" className="text-sm" />
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="ghost" className="text-green-600" onClick={saveEdit}><Check size={13} /> Salva</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditState(null)}><X size={13} /> Annulla</Button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <React.Fragment key={m.id}>
+                      <div
+                        className="group flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                      >
+                        <ChevronDown size={13} className={`text-muted-foreground/50 transition-transform shrink-0 ${isExpanded ? "" : "-rotate-90"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{m.person.name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
+                              {DEPT_LABEL[m.department]}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground italic truncate">{m.roleTitle}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Button size="icon-sm" variant="ghost" onClick={() => startEdit(m)}><Pencil size={12} /></Button>
+                          <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => removeMember(m)}><Trash2 size={12} /></Button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="bg-muted/20 px-8 py-3 space-y-2 text-sm">
+                          {m.characterName && <p><span className="text-xs text-muted-foreground">Personaggio: </span>{m.characterName}</p>}
+                          {m.person.email && (
+                            <p><span className="text-xs text-muted-foreground">Email: </span>
+                              <a href={`mailto:${m.person.email}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{m.person.email}</a>
+                            </p>
+                          )}
+                          {m.person.phone && (
+                            <p><span className="text-xs text-muted-foreground">Tel: </span>
+                              <a href={`tel:${m.person.phone}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{m.person.phone}</a>
+                            </p>
+                          )}
+                          {m.notes && <p><span className="text-xs text-muted-foreground">Note: </span>{m.notes}</p>}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </div>
+          </Card>
         </div>
       </div>
     </div>
