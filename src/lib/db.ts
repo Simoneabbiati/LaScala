@@ -1,16 +1,18 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { createClient } from "@libsql/client";
 import path from "node:path";
 
-const rawUrl =
-  process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`;
-// Vercel serverless doesn't support WebSockets — convert libsql:// to https://
-const dbUrl = rawUrl.replace(/^libsql:\/\//, "https://");
+const dbUrl = (
+  process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`
+).replace(/^libsql:\/\//, "https://");
 
-const adapter = new PrismaLibSql({
+const client = createClient({
   url: dbUrl,
-  ...(process.env.TURSO_AUTH_TOKEN ? { authToken: process.env.TURSO_AUTH_TOKEN } : {}),
+  authToken: process.env.TURSO_AUTH_TOKEN,
 });
+
+const adapter = new PrismaLibSql(client);
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
