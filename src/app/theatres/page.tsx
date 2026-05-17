@@ -1,24 +1,54 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, MapPin, Plus, Trash2 } from "lucide-react";
+import { Building2, ImageSearch, MapPin, Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Location = { id: string; name: string };
 type Theatre = {
-  id: string; name: string; city: string;
+  id: string; name: string; city: string; logoUrl?: string | null;
   locations: Location[];
   _count: { productions: number };
 };
+type WikiResult = { title: string; thumbnail?: string; description?: string };
+type EditState = { id: string; name: string; city: string; logoUrl: string };
+type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
+
+const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
+
+async function searchWikipedia(query: string): Promise<WikiResult[]> {
+  const search = await fetch(
+    `https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + " teatro")}&format=json&origin=*&srlimit=4`
+  ).then((r) => r.json());
+
+  const titles: string[] = search.query?.search?.map((s: any) => s.title) ?? [];
+  const results: WikiResult[] = [];
+
+  for (const title of titles.slice(0, 4)) {
+    const summary = await fetch(
+      `https://it.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+    ).then((r) => r.json()).catch(() => null);
+    if (summary?.thumbnail?.source) {
+      results.push({ title, thumbnail: summary.thumbnail.source, description: summary.description });
+    }
+    if (results.length >= 3) break;
+  }
+  return results;
+}
 
 export default function TheatresPage() {
   const [theatres, setTheatres] = useState<Theatre[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", city: "" });
   const [locationForms, setLocationForms] = useState<Record<string, string>>({});
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [wikiResults, setWikiResults] = useState<WikiResult[]>([]);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
 
   const load = () => fetch("/api/theatres").then((r) => r.json()).then(setTheatres);
   useEffect(() => { load(); }, []);
@@ -34,11 +64,36 @@ export default function TheatresPage() {
     load();
   };
 
-  const deleteTheatre = async (id: string) => {
-    if (!confirm("Eliminare questo teatro e tutte le produzioni collegate?")) return;
-    await fetch(`/api/theatres/${id}`, { method: "DELETE" });
+  const saveEdit = async () => {
+    if (!editState) return;
+    await fetch(`/api/theatres/${editState.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editState.name, city: editState.city, logoUrl: editState.logoUrl || null }),
+    });
+    setEditState(null);
+    setWikiResults([]);
     load();
   };
+
+  const searchImages = async () => {
+    if (!editState) return;
+    setWikiLoading(true);
+    setWikiResults([]);
+    const results = await searchWikipedia(editState.name);
+    setWikiResults(results);
+    setWikiLoading(false);
+  };
+
+  const deleteTheatre = (t: Theatre) => setConfirm({
+    open: true,
+    title: "Eliminare teatro?",
+    description: `Eliminare "${t.name}" e tutte le produzioni collegate? L'azione è irreversibile.`,
+    onConfirm: async () => {
+      await fetch(`/api/theatres/${t.id}`, { method: "DELETE" });
+      setConfirm(defaultConfirm);
+      load();
+    },
+  });
 
   const addLocation = async (theatreId: string) => {
     const name = locationForms[theatreId]?.trim();
@@ -61,14 +116,14 @@ export default function TheatresPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog {...confirm} destructive confirmLabel="Elimina" onCancel={() => setConfirm(defaultConfirm)} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Teatri</h1>
           <p className="text-muted-foreground mt-1">Gestisci teatri e le loro sale</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={16} /> Nuovo teatro
-        </Button>
+        <Button onClick={() => setShowForm(true)}><Plus size={16} /> Nuovo teatro</Button>
       </div>
 
       {showForm && (
@@ -96,50 +151,122 @@ export default function TheatresPage() {
       )}
 
       {theatres.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nessun teatro ancora. Aggiungine uno.</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nessun teatro ancora.</CardContent></Card>
       ) : (
         <div className="space-y-4">
-          {theatres.map((t) => (
-            <Card key={t.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building2 size={18} className="text-muted-foreground" />
-                    <div>
-                      <CardTitle className="text-base">{t.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-0.5">{t.city} · {t._count.productions} produzioni</p>
+          {theatres.map((t) => {
+            const isEditing = editState?.id === t.id;
+            return (
+              <Card key={t.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {t.logoUrl
+                        ? <img src={t.logoUrl} alt={t.name} className="w-10 h-10 rounded object-cover" />
+                        : <Building2 size={18} className="text-muted-foreground" />}
+                      <div>
+                        <CardTitle className="text-base">{t.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-0.5">{t.city} · {t._count.productions} produzioni</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
+                        setWikiResults([]);
+                      }}>
+                        <Pencil size={14} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTheatre(t)}>
+                        <Trash2 size={15} />
+                      </Button>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => deleteTheatre(t.id)} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 size={15} />
-                  </Button>
-                </div>
-              </CardHeader>
-              <Separator />
-              <CardContent className="pt-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Sale / Luoghi</p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {t.locations.map((loc) => (
-                    <Badge key={loc.id} variant="secondary" className="gap-1 pr-1">
-                      <MapPin size={10} /> {loc.name}
-                      <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive">×</button>
-                    </Badge>
-                  ))}
-                  {t.locations.length === 0 && <p className="text-sm text-muted-foreground">Nessuna sala aggiunta.</p>}
-                </div>
-                <div className="flex gap-2 max-w-sm">
-                  <Input
-                    value={locationForms[t.id] ?? ""}
-                    onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                    onKeyDown={(e) => e.key === "Enter" && addLocation(t.id)}
-                    placeholder="Nuova sala..."
-                    className="h-8 text-sm"
-                  />
-                  <Button size="sm" variant="outline" onClick={() => addLocation(t.id)}>Aggiungi</Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                  {isEditing && editState && (
+                    <div className="mt-4 space-y-3 border-t pt-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                          <Input value={editState.name} onChange={(e) => setEditState({ ...editState, name: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Città</label>
+                          <Input value={editState.city} onChange={(e) => setEditState({ ...editState, city: e.target.value })} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">URL immagine</label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={editState.logoUrl}
+                            onChange={(e) => setEditState({ ...editState, logoUrl: e.target.value })}
+                            placeholder="https://..."
+                          />
+                          <Button type="button" variant="outline" onClick={searchImages} disabled={wikiLoading}>
+                            <Search size={14} /> {wikiLoading ? "Cerca..." : "Cerca su Wikipedia"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {wikiResults.length > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-2">Clicca un'immagine per selezionarla:</p>
+                          <div className="flex gap-3 flex-wrap">
+                            {wikiResults.map((r) => (
+                              <button
+                                key={r.title}
+                                onClick={() => setEditState({ ...editState, logoUrl: r.thumbnail! })}
+                                className={`rounded-lg overflow-hidden border-2 transition-colors ${editState.logoUrl === r.thumbnail ? "border-primary" : "border-transparent hover:border-border"}`}
+                              >
+                                <img src={r.thumbnail} alt={r.title} className="w-24 h-24 object-cover" />
+                                <p className="text-xs text-center p-1 max-w-24 truncate">{r.title}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {wikiResults.length === 0 && !wikiLoading && editState.logoUrl && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Anteprima:</p>
+                          <img src={editState.logoUrl} alt="preview" className="w-24 h-24 rounded object-cover border" />
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveEdit}><Check size={13} /> Salva</Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditState(null); setWikiResults([]); }}><X size={13} /> Annulla</Button>
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+
+                <Separator />
+                <CardContent className="pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Sale / Luoghi</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {t.locations.map((loc) => (
+                      <Badge key={loc.id} variant="secondary" className="gap-1 pr-1">
+                        <MapPin size={10} /> {loc.name}
+                        <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive">×</button>
+                      </Badge>
+                    ))}
+                    {t.locations.length === 0 && <p className="text-sm text-muted-foreground">Nessuna sala aggiunta.</p>}
+                  </div>
+                  <div className="flex gap-2 max-w-sm">
+                    <Input
+                      value={locationForms[t.id] ?? ""}
+                      onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      onKeyDown={(e) => e.key === "Enter" && addLocation(t.id)}
+                      placeholder="Nuova sala..."
+                    />
+                    <Button variant="outline" onClick={() => addLocation(t.id)}>Aggiungi</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
