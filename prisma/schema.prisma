@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Theatre {
+  id          String       @id @default(cuid())
+  name        String
+  city        String
+  logoUrl     String?
+  createdAt   DateTime     @default(now())
+  locations   Location[]
+  productions Production[]
+}
+
+model Location {
+  id         String      @id @default(cuid())
+  name       String
+  theatreId  String
+  theatre    Theatre     @relation(fields: [theatreId], references: [id], onDelete: Cascade)
+  odgSessions OdgSession[]
+  odgEntries  OdgEntry[]
+}
+
+model Production {
+  id          String             @id @default(cuid())
+  title       String
+  composer    String?
+  theatreId   String
+  theatre     Theatre            @relation(fields: [theatreId], references: [id], onDelete: Cascade)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime           @default(now())
+  members     ProductionMember[]
+  odgs        Odg[]
+}
+
+// Department enum stored as String in SQLite
+// Values: TEAM_CREATIVO | CAST | ORCHESTRA | MAESTRI_COLLABORATORI | AREA_TECNICA
+
+model Person {
+  id          String             @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  createdAt   DateTime           @default(now())
+  productions ProductionMember[]
+}
+
+model ProductionMember {
+  id            String     @id @default(cuid())
+  personId      String
+  productionId  String
+  person        Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+  production    Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  department    String     // TEAM_CREATIVO | CAST | ORCHESTRA | MAESTRI_COLLABORATORI | AREA_TECNICA
+  roleTitle     String     // e.g. "Direttore d'orchestra", "Regista", "Soprano"
+  characterName String?    // for CAST only, e.g. "Gulliver"
+  notes         String?
+  odgEntries    OdgEntry[]
+
+  @@unique([personId, productionId])
+}
+
+model Odg {
+  id           String       @id @default(cuid())
+  productionId String
+  production   Production   @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  date         DateTime
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  sessions     OdgSession[]
+  entries      OdgEntry[]
+
+  @@unique([productionId, date])
+}
+
+// Top-level day overview blocks (e.g. "10:00-11:30 Prova di scena solo figuranti")
+model OdgSession {
+  id         String    @id @default(cuid())
+  odgId      String
+  odg        Odg       @relation(fields: [odgId], references: [id], onDelete: Cascade)
+  startTime  String    // "10:00"
+  endTime    String    // "11:30"
+  activity   String
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+  sortOrder  Int       @default(0)
+}
+
+// Per-person assignment within an ODG
+model OdgEntry {
+  id               String           @id @default(cuid())
+  odgId            String
+  odg              Odg              @relation(fields: [odgId], references: [id], onDelete: Cascade)
+  memberId         String
+  member           ProductionMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  startTime        String           // "14:00"
+  endTime          String           // "18:00"
+  activity         String
+  locationId       String?
+  location         Location?        @relation(fields: [locationId], references: [id])
+  notes            String?
+  sortOrder        Int              @default(0)
+}
