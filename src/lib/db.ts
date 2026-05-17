@@ -2,8 +2,10 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import path from "node:path";
 
-const dbUrl =
+const rawUrl =
   process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "prisma/dev.db")}`;
+// Vercel serverless doesn't support WebSockets — convert libsql:// to https://
+const dbUrl = rawUrl.replace(/^libsql:\/\//, "https://");
 
 const adapter = new PrismaLibSql({
   url: dbUrl,
