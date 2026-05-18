@@ -365,11 +365,14 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                           <p className={`text-sm font-medium truncate ${!m.person ? "text-muted-foreground italic" : ""}`}>
                             {m.person?.name ?? "— da assegnare"}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
                               {DEPT_LABEL[m.department]}
                             </Badge>
                             <span className="text-xs text-muted-foreground italic truncate">{m.roleTitle}</span>
+                            {m.characterName && (
+                              <span className="text-xs text-foreground/70 truncate">· {m.characterName}</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
