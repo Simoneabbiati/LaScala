@@ -29,7 +29,7 @@ export default function AppSidebar() {
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Direttore di Scena
         </p>
-        <h1 className="text-base font-bold leading-tight">ODG</h1>
+        <h1 className="text-base font-bold leading-tight">Quinta</h1>
       </SidebarHeader>
 
       <SidebarContent>

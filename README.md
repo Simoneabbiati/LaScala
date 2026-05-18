@@ -1,6 +1,6 @@
-# LaScala — Gestionale ODG
+# Quinta
 
-Web app per la gestione degli **Ordini del Giorno** (ODG) dei Direttori di Scena del Teatro alla Scala e altri teatri italiani.
+Gestionale **ODG** (Ordine del Giorno) per Direttori di Scena di teatri lirici italiani.
 
 ## Funzionalità
 

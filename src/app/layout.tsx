@@ -8,8 +8,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "ODG — Ordine del Giorno",
-  description: "Gestione Ordine del Giorno per Direttori di Scena",
+  title: "Quinta",
+  description: "Gestionale ODG per Direttori di Scena",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
