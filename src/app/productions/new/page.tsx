@@ -212,16 +212,17 @@ export default function NewProductionPage() {
           <CardContent className="pt-0">
             <div className="space-y-2">
               {castSlots.map((slot, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2"
-                >
-                  <span className="text-sm font-medium truncate">
-                    {slot.characterName}
-                  </span>
-                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded whitespace-nowrap">
-                    {slot.voiceType || "—"}
-                  </span>
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-56 shrink-0 min-w-0">
+                    <span className="text-sm font-medium truncate">
+                      {slot.characterName}
+                    </span>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                      {slot.voiceType
+                        ? slot.voiceType.charAt(0).toUpperCase() + slot.voiceType.slice(1)
+                        : "—"}
+                    </span>
+                  </div>
                   <Input
                     value={slot.personName}
                     onChange={(e) => {
@@ -230,14 +231,14 @@ export default function NewProductionPage() {
                       setCastSlots(updated);
                     }}
                     placeholder="Nome artista..."
-                    className="h-8 text-sm"
+                    className="h-8 text-sm flex-1"
                   />
                   <button
                     type="button"
                     onClick={() =>
                       setCastSlots(castSlots.filter((_, j) => j !== i))
                     }
-                    className="text-muted-foreground hover:text-destructive"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
                   >
                     <X size={13} />
                   </button>
