@@ -119,7 +119,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
               {entries.map((entry) => (
                 <View key={entry.id} style={styles.row}>
                   <View style={styles.nameCol}>
-                    <Text style={styles.nameText}>{entry.member.person.name}</Text>
+                    <Text style={styles.nameText}>{entry.member.person?.name ?? "—"}</Text>
                     <Text style={styles.roleText}>{entry.member.roleTitle}</Text>
                   </View>
                   <Text style={styles.timeCol}>{entry.startTime} - {entry.endTime}</Text>

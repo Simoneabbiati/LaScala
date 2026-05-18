@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Person = { id: string; name: string; email?: string; phone?: string };
-type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person };
+type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person | null };
 type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type TheatreOption = { id: string; name: string; city: string };
@@ -80,8 +80,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   };
 
   const startEdit = (m: Member) => setEditState({
-    memberId: m.id, personName: m.person.name, department: m.department,
-    roleTitle: m.roleTitle, characterName: m.characterName ?? "", email: m.person.email ?? "", phone: m.person.phone ?? "",
+    memberId: m.id, personName: m.person?.name ?? "", department: m.department,
+    roleTitle: m.roleTitle, characterName: m.characterName ?? "", email: m.person?.email ?? "", phone: m.person?.phone ?? "",
   });
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -98,7 +98,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const removeMember = (m: Member) => setConfirm({
     open: true,
     title: "Rimuovere dal roster?",
-    description: `Rimuovere ${m.person.name} dalla produzione?`,
+    description: `Rimuovere ${m.person?.name ?? m.characterName ?? "questo membro"} dalla produzione?`,
     onConfirm: async () => {
       await fetch(`/api/productions/${id}/members/${m.id}`, { method: "DELETE" });
       setConfirm(defaultConfirm);
@@ -358,7 +358,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       >
                         <ChevronDown size={13} className={`text-muted-foreground/50 transition-transform shrink-0 ${isExpanded ? "" : "-rotate-90"}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{m.person.name}</p>
+                          <p className={`text-sm font-medium truncate ${!m.person ? "text-muted-foreground italic" : ""}`}>
+                            {m.person?.name ?? "— da assegnare"}
+                          </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
                               {DEPT_LABEL[m.department]}
@@ -374,12 +376,12 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       {isExpanded && (
                         <div className="bg-muted/20 px-8 py-3 space-y-2 text-sm">
                           {m.characterName && <p><span className="text-xs text-muted-foreground">Personaggio: </span>{m.characterName}</p>}
-                          {m.person.email && (
+                          {m.person?.email && (
                             <p><span className="text-xs text-muted-foreground">Email: </span>
                               <a href={`mailto:${m.person.email}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{m.person.email}</a>
                             </p>
                           )}
-                          {m.person.phone && (
+                          {m.person?.phone && (
                             <p><span className="text-xs text-muted-foreground">Tel: </span>
                               <a href={`tel:${m.person.phone}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{m.person.phone}</a>
                             </p>

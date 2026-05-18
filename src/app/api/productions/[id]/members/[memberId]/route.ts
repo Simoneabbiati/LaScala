@@ -13,7 +13,8 @@ export async function PATCH(
       where: { id: memberId },
       include: { person: true },
     });
-    if (member) {
+
+    if (member?.personId && member.person) {
       await prisma.person.update({
         where: { id: member.personId },
         data: {
@@ -21,6 +22,24 @@ export async function PATCH(
           email: body.email ?? member.person.email,
           phone: body.phone ?? member.person.phone,
         },
+      });
+    } else {
+      // No person yet — create/find one and link it
+      let person = await prisma.person.findFirst({
+        where: { name: body.personName },
+      });
+      if (!person) {
+        person = await prisma.person.create({
+          data: {
+            name: body.personName,
+            email: body.email,
+            phone: body.phone,
+          },
+        });
+      }
+      await prisma.productionMember.update({
+        where: { id: memberId },
+        data: { personId: person.id },
       });
     }
   }

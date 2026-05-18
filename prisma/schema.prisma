@@ -53,17 +53,15 @@ model Person {
 
 model ProductionMember {
   id            String     @id @default(cuid())
-  personId      String
+  personId      String?
   productionId  String
-  person        Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person        Person?    @relation(fields: [personId], references: [id], onDelete: SetNull)
   production    Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
   department    String     // TEAM_CREATIVO | CAST | ORCHESTRA | MAESTRI_COLLABORATORI | AREA_TECNICA
   roleTitle     String     // e.g. "Direttore d'orchestra", "Regista", "Soprano"
   characterName String?    // for CAST only, e.g. "Gulliver"
   notes         String?
   odgEntries    OdgEntry[]
-
-  @@unique([personId, productionId])
 }
 
 model Odg {
@@ -108,4 +106,23 @@ model OdgEntry {
   location         Location?        @relation(fields: [locationId], references: [id])
   notes            String?
   sortOrder        Int              @default(0)
+}
+
+model Opera {
+  id           String           @id @default(cuid())
+  wikidataId   String           @unique
+  title        String
+  composer     String?
+  createdAt    DateTime         @default(now())
+  characters   OperaCharacter[]
+}
+
+model OperaCharacter {
+  id        String  @id @default(cuid())
+  operaId   String
+  opera     Opera   @relation(fields: [operaId], references: [id], onDelete: Cascade)
+  name      String
+  voiceType String?
+
+  @@unique([operaId, name])
 }
