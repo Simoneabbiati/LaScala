@@ -142,9 +142,9 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <div className="flex items-center rounded-lg border overflow-hidden text-sm">
               <button
                 onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
-                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`px-3 py-1.5 transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
               >
-                <Check size={13} /> In lavorazione
+                In lavorazione
               </button>
               <div className="w-px h-6 bg-border" />
               <button

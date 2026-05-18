@@ -47,6 +47,7 @@ export default function TheatresPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", city: "" });
   const [locationForms, setLocationForms] = useState<Record<string, string>>({});
+  const [showAddLocation, setShowAddLocation] = useState<Record<string, boolean>>({});
   const [editState, setEditState] = useState<EditState | null>(null);
   const [wikiResults, setWikiResults] = useState<WikiResult[]>([]);
   const [wikiLoading, setWikiLoading] = useState(false);
@@ -161,17 +162,30 @@ export default function TheatresPage() {
             return (
               <Card key={t.id}>
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       {t.logoUrl
-                        ? <img src={t.logoUrl} alt={t.name} className="w-10 h-10 rounded object-cover" />
-                        : <Building2 size={18} className="text-muted-foreground" />}
-                      <div>
+                        ? <img src={t.logoUrl} alt={t.name} className="w-10 h-10 rounded object-cover shrink-0 mt-0.5" />
+                        : <Building2 size={18} className="text-muted-foreground shrink-0 mt-1" />}
+                      <div className="flex-1 min-w-0">
                         <CardTitle className="text-base">{t.name}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-0.5">{t.city} · {t._count.productions} produzioni</p>
+                        {t.locations.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {t.locations.map((loc) => (
+                              <Badge key={loc.id} variant="secondary" className="gap-1 pr-1 text-xs">
+                                <MapPin size={9} /> {loc.name}
+                                <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive leading-none">×</button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" title="Aggiungi sala" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
+                        <Plus size={14} />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => {
                         setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
                         setWikiResults([]);
@@ -183,6 +197,21 @@ export default function TheatresPage() {
                       </Button>
                     </div>
                   </div>
+
+                  {showAddLocation[t.id] && (
+                    <div className="flex gap-2 mt-3 max-w-sm">
+                      <Input
+                        autoFocus
+                        value={locationForms[t.id] ?? ""}
+                        onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); } if (e.key === "Escape") setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }}
+                        placeholder="Nome sala..."
+                        className="h-8 text-sm"
+                      />
+                      <Button size="sm" onClick={() => { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }}>Aggiungi</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: false }))}><X size={13} /></Button>
+                    </div>
+                  )}
 
                   {isEditing && editState && (
                     <div className="mt-4 space-y-3 border-t pt-4">
@@ -244,11 +273,10 @@ export default function TheatresPage() {
                   )}
                 </CardHeader>
 
-                <Separator />
-                <CardContent className="pt-4 space-y-5">
-                  {/* Productions list */}
-                  {t.productions.length > 0 && (
-                    <div>
+                {t.productions.length > 0 && (
+                  <>
+                    <Separator />
+                    <CardContent className="pt-4">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Produzioni</p>
                       <div className="divide-y rounded-lg border overflow-hidden">
                         {t.productions.map((p) => {
@@ -268,31 +296,9 @@ export default function TheatresPage() {
                           );
                         })}
                       </div>
-                    </div>
-                  )}
-
-                  <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Sale / Luoghi</p>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {t.locations.map((loc) => (
-                      <Badge key={loc.id} variant="secondary" className="gap-1 pr-1">
-                        <MapPin size={10} /> {loc.name}
-                        <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive">×</button>
-                      </Badge>
-                    ))}
-                    {t.locations.length === 0 && <p className="text-sm text-muted-foreground">Nessuna sala aggiunta.</p>}
-                  </div>
-                  <div className="flex gap-2 max-w-sm">
-                    <Input
-                      value={locationForms[t.id] ?? ""}
-                      onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                      onKeyDown={(e) => e.key === "Enter" && addLocation(t.id)}
-                      placeholder="Nuova sala..."
-                    />
-                    <Button variant="outline" onClick={() => addLocation(t.id)}>Aggiungi</Button>
-                  </div>
-                  </div>
-                </CardContent>
+                    </CardContent>
+                  </>
+                )}
               </Card>
             );
           })}
