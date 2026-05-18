@@ -382,7 +382,6 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       </div>
                       {isExpanded && (
                         <div className="bg-muted/20 px-8 py-3 space-y-2 text-sm">
-                          {m.characterName && <p><span className="text-xs text-muted-foreground">Personaggio: </span>{m.characterName}</p>}
                           {m.person?.email && (
                             <p><span className="text-xs text-muted-foreground">Email: </span>
                               <a href={`mailto:${m.person.email}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{m.person.email}</a>
