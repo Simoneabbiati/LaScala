@@ -342,6 +342,10 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                         </select>
                         <Input value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} placeholder="Ruolo" className="text-sm" />
                         <Input value={editState.characterName} onChange={(e) => setEditState({ ...editState, characterName: e.target.value })} placeholder="Personaggio" className="text-sm" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="email" value={editState.email} onChange={(e) => setEditState({ ...editState, email: e.target.value })} placeholder="Email" className="text-sm" />
+                          <Input value={editState.phone} onChange={(e) => setEditState({ ...editState, phone: e.target.value })} placeholder="Telefono" className="text-sm" />
+                        </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="ghost" className="text-green-600" onClick={saveEdit}><Check size={13} /> Salva</Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditState(null)}><X size={13} /> Annulla</Button>
