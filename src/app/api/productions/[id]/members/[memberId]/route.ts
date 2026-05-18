@@ -9,22 +9,25 @@ export async function PATCH(
   const body = await req.json();
 
   if (body.personName) {
-    const member = await prisma.productionMember.findUnique({
+    const current = await prisma.productionMember.findUnique({
       where: { id: memberId },
       include: { person: true },
     });
 
-    if (member?.personId && member.person) {
+    const nameUnchanged = current?.person?.name === body.personName;
+
+    if (nameUnchanged && current?.personId) {
+      // Same name — only update contact details on the existing person
       await prisma.person.update({
-        where: { id: member.personId },
+        where: { id: current.personId },
         data: {
-          name: body.personName,
-          email: body.email ?? member.person.email,
-          phone: body.phone ?? member.person.phone,
+          email: body.email ?? current.person?.email,
+          phone: body.phone ?? current.person?.phone,
         },
       });
     } else {
-      // No person yet — create/find one and link it
+      // Name changed (or no person yet) — find/create the target person
+      // and re-point this member, leaving the original person untouched
       let person = await prisma.person.findFirst({
         where: { name: body.personName },
       });
