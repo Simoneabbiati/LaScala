@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ChevronRight, Check, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { ACTIVITIES, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -156,6 +156,9 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             </div>
             <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
               <FileDown size={15} /> PDF
+            </Link>
+            <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }))}>
+              <FileText size={15} /> Word
             </Link>
           </div>
         </div>
