@@ -42,22 +42,19 @@ export default async function Dashboard() {
       label: "Teatri in repertorio",
       value: theatreCount,
       icon: Building2,
-      href: "/theatres",
       sub: "sedi registrate",
     },
     {
       label: "In scena oggi",
       value: inCorso.length,
       icon: Timer,
-      href: "/productions",
-      sub: inCorso.length === 1 ? inCorso[0].title : inCorso.length > 1 ? `${inCorso.map(p => p.title).join(", ")}` : "nessuna produzione attiva",
+      sub: inCorso.length === 1 ? inCorso[0].title : inCorso.length > 1 ? inCorso.map(p => p.title).join(", ") : "nessuna produzione attiva",
       highlight: inCorso.length > 0,
     },
     {
       label: "Produzioni future",
       value: inArrivo.length,
       icon: CalendarDays,
-      href: "/productions",
       sub: inArrivo.length > 0
         ? `prossima: ${new Date(inArrivo[inArrivo.length - 1].startDate!).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}`
         : "nessuna in programma",
@@ -66,7 +63,6 @@ export default async function Dashboard() {
       label: "Produzioni concluse",
       value: concluse.length,
       icon: CheckCircle2,
-      href: "/productions",
       sub: "archivio",
     },
   ];
@@ -87,18 +83,16 @@ export default async function Dashboard() {
 
       <div className="grid grid-cols-4 gap-4">
         {stats.map((s) => (
-          <Link key={s.label} href={s.href}>
-            <Card className={`hover:shadow-sm transition-shadow h-full ${s.highlight ? "border-amber-300 bg-amber-50/40" : ""}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.label}</CardTitle>
-                <s.icon size={15} className={s.highlight ? "text-amber-500" : "text-muted-foreground"} />
-              </CardHeader>
-              <CardContent>
-                <p className={`text-3xl font-bold mb-1 ${s.highlight ? "text-amber-600" : ""}`}>{s.value}</p>
-                <p className="text-xs text-muted-foreground truncate">{s.sub}</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card key={s.label} className={s.highlight ? "border-amber-300 bg-amber-50/40" : ""}>
+            <CardHeader className="flex flex-row items-center justify-between pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.label}</CardTitle>
+              <s.icon size={15} className={s.highlight ? "text-amber-500" : "text-muted-foreground"} />
+            </CardHeader>
+            <CardContent>
+              <p className={`text-3xl font-bold mb-1 ${s.highlight ? "text-amber-600" : ""}`}>{s.value}</p>
+              <p className="text-xs text-muted-foreground truncate">{s.sub}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
