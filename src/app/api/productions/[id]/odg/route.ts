@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const odg = await prisma.odg.upsert({
     where: { productionId_date: { productionId, date } },
-    create: { productionId, date, notes: body.notes },
+    create: { productionId, date, notes: body.notes, status: "BOZZA" },
     update: { notes: body.notes },
     include: {
       sessions: { include: { location: true }, orderBy: { sortOrder: "asc" } },

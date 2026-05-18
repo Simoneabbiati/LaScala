@@ -154,7 +154,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       ? <span className="flex items-center gap-1 text-xs font-medium text-green-600"><Check size={13} className="shrink-0" /> Definitivo</span>
                       : odg.status === "BOZZA"
                         ? <span className="flex items-center gap-1 text-xs font-medium text-amber-500"><Check size={13} className="shrink-0" /> In lavorazione</span>
-                        : <span className="text-xs text-muted-foreground">Iniziato</span>;
+                        : <span className="flex items-center gap-1 text-xs font-medium text-amber-500"><Check size={13} className="shrink-0" /> Iniziato</span>;
 
                   if (odg) {
                     return (

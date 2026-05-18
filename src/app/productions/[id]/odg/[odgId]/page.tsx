@@ -137,7 +137,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <h1 className="text-2xl font-bold tracking-tight capitalize">{dateLabel}</h1>
             <p className="text-muted-foreground">{production.title} · {production.theatre.name}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col items-end gap-2 shrink-0">
             {/* Status toggle */}
             <div className="flex items-center rounded-lg border overflow-hidden text-sm">
               <button
@@ -154,12 +154,15 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 <Check size={13} /> Definitivo
               </button>
             </div>
-            <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
-              <FileDown size={15} /> PDF
-            </Link>
-            <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }))}>
-              <FileText size={15} /> Word
-            </Link>
+            {/* Export buttons */}
+            <div className="flex gap-2">
+              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
+                <FileDown size={15} /> PDF
+              </Link>
+              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }))}>
+                <FileText size={15} /> Word
+              </Link>
+            </div>
           </div>
         </div>
       </div>
