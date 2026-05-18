@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Location = { id: string; name: string };
@@ -182,20 +183,37 @@ export default function TheatresPage() {
                         )}
                       </div>
                     </div>
+                    <TooltipProvider>
                     <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" title="Aggiungi sala" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
-                        <Plus size={14} />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => {
-                        setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
-                        setWikiResults([]);
-                      }}>
-                        <Pencil size={14} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTheatre(t)}>
-                        <Trash2 size={15} />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger >
+                          <Button variant="ghost" size="icon" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
+                            <Plus size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Aggiungi sala</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger >
+                          <Button variant="ghost" size="icon" onClick={() => {
+                            setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
+                            setWikiResults([]);
+                          }}>
+                            <Pencil size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Modifica teatro</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger >
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTheatre(t)}>
+                            <Trash2 size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Elimina teatro</TooltipContent>
+                      </Tooltip>
                     </div>
+                    </TooltipProvider>
                   </div>
 
                   {showAddLocation[t.id] && (

@@ -137,29 +137,29 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <h1 className="text-2xl font-bold tracking-tight capitalize">{dateLabel}</h1>
             <p className="text-muted-foreground">{production.title} · {production.theatre.name}</p>
           </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
+          <div className="flex flex-col items-stretch gap-2 shrink-0 w-64">
             {/* Status toggle */}
-            <div className="flex items-center rounded-lg border overflow-hidden text-sm">
+            <div className="flex rounded-lg border overflow-hidden text-sm">
               <button
                 onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
-                className={`px-3 py-1.5 transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`flex-1 py-2 text-center text-sm font-medium transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700" : "text-muted-foreground hover:bg-muted/50"}`}
               >
                 In lavorazione
               </button>
-              <div className="w-px h-6 bg-border" />
+              <div className="w-px bg-border" />
               <button
                 onClick={() => setStatus(odg.status === "DEFINITIVO" ? null : "DEFINITIVO")}
-                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-100 text-green-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-sm font-medium transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-100 text-green-700" : "text-muted-foreground hover:bg-muted/50"}`}
               >
-                <Check size={13} /> Definitivo
+                {odg.status === "DEFINITIVO" && <Check size={13} />} Definitivo
               </button>
             </div>
             {/* Export buttons */}
             <div className="flex gap-2">
-              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
+              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }), "flex-1 justify-center")}>
                 <FileDown size={15} /> PDF
               </Link>
-              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }))}>
+              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }), "flex-1 justify-center")}>
                 <FileText size={15} /> Word
               </Link>
             </div>

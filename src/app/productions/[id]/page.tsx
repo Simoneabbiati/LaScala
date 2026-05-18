@@ -15,6 +15,7 @@ type Person = { id: string; name: string; email?: string; phone?: string };
 type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person };
 type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
+type TheatreOption = { id: string; name: string; city: string };
 type Odg = { id: string; date: string; status?: string | null };
 type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[] };
 
@@ -34,9 +35,38 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const [editState, setEditState] = useState<EditState | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
+  const [showProdEdit, setShowProdEdit] = useState(false);
+  const [prodEditForm, setProdEditForm] = useState({ title: "", composer: "", theatreId: "", startDate: "", endDate: "" });
+  const [theatreOptions, setTheatreOptions] = useState<TheatreOption[]>([]);
 
   const load = () => fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
   useEffect(() => { load(); }, [id]);
+
+  const openProdEdit = async () => {
+    if (!production) return;
+    if (theatreOptions.length === 0) {
+      const ts = await fetch("/api/theatres").then((r) => r.json());
+      setTheatreOptions(ts);
+    }
+    setProdEditForm({
+      title: production.title,
+      composer: production.composer ?? "",
+      theatreId: production.theatre.id,
+      startDate: production.startDate ? production.startDate.slice(0, 10) : "",
+      endDate: production.endDate ? production.endDate.slice(0, 10) : "",
+    });
+    setShowProdEdit(true);
+  };
+
+  const saveProdEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetch(`/api/productions/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(prodEditForm),
+    });
+    setShowProdEdit(false);
+    load();
+  };
 
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,17 +143,58 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
           <ChevronRight size={14} />
           <span>{production.title}</span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
-        <p className="text-muted-foreground mt-0.5">
-          {production.composer && <span>{production.composer} · </span>}
-          {production.theatre.name}, {production.theatre.city}
-          {production.startDate && (
-            <span className="ml-2">
-              {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
-              {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`}
-            </span>
-          )}
-        </p>
+        {showProdEdit ? (
+          <form onSubmit={saveProdEdit} className="space-y-3 border rounded-xl p-4 bg-muted/20">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Titolo *</label>
+                <Input required value={prodEditForm.title} onChange={(e) => setProdEditForm({ ...prodEditForm, title: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Compositore</label>
+                <Input value={prodEditForm.composer} onChange={(e) => setProdEditForm({ ...prodEditForm, composer: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Teatro *</label>
+                <select required value={prodEditForm.theatreId} onChange={(e) => setProdEditForm({ ...prodEditForm, theatreId: e.target.value })}>
+                  <option value="">Seleziona teatro...</option>
+                  {theatreOptions.map((t) => <option key={t.id} value={t.id}>{t.name} — {t.city}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Inizio</label>
+                  <Input type="date" value={prodEditForm.startDate} onChange={(e) => setProdEditForm({ ...prodEditForm, startDate: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Fine</label>
+                  <Input type="date" value={prodEditForm.endDate} onChange={(e) => setProdEditForm({ ...prodEditForm, endDate: e.target.value })} />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" size="sm"><Check size={13} /> Salva</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setShowProdEdit(false)}><X size={13} /> Annulla</Button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
+              <p className="text-muted-foreground mt-0.5">
+                {production.composer && <span>{production.composer} · </span>}
+                {production.theatre.name}, {production.theatre.city}
+                {production.startDate && (
+                  <span className="ml-2">
+                    {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                    {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`}
+                  </span>
+                )}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-6">
