@@ -9,9 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Location = { id: string; name: string };
+type TheatreProduction = { id: string; title: string; composer?: string | null; startDate?: string | null; endDate?: string | null };
 type Theatre = {
   id: string; name: string; city: string; logoUrl?: string | null;
   locations: Location[];
+  productions: TheatreProduction[];
   _count: { productions: number };
 };
 type WikiResult = { title: string; thumbnail?: string; description?: string };
@@ -243,7 +245,33 @@ export default function TheatresPage() {
                 </CardHeader>
 
                 <Separator />
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 space-y-5">
+                  {/* Productions list */}
+                  {t.productions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Produzioni</p>
+                      <div className="divide-y rounded-lg border overflow-hidden">
+                        {t.productions.map((p) => {
+                          const year = p.startDate ? new Date(p.startDate).getFullYear() : null;
+                          const dateRange = p.startDate
+                            ? new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" }) +
+                              (p.endDate ? ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}` : ` ${year}`)
+                            : null;
+                          return (
+                            <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/30 transition-colors">
+                              <div>
+                                <span className="font-medium">{p.title}</span>
+                                {p.composer && <span className="text-muted-foreground ml-1.5 text-xs">— {p.composer}</span>}
+                              </div>
+                              {dateRange && <span className="text-xs text-muted-foreground shrink-0 ml-4">{dateRange}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Sale / Luoghi</p>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {t.locations.map((loc) => (
@@ -262,6 +290,7 @@ export default function TheatresPage() {
                       placeholder="Nuova sala..."
                     />
                     <Button variant="outline" onClick={() => addLocation(t.id)}>Aggiungi</Button>
+                  </div>
                   </div>
                 </CardContent>
               </Card>
