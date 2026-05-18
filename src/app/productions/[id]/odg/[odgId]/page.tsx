@@ -18,7 +18,7 @@ type OdgEntry = { id: string; startTime: string; endTime: string; activity: stri
 type OdgSession = { id: string; startTime: string; endTime: string; activity: string; location?: Location };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type Production = { id: string; title: string; composer?: string; theatre: Theatre; members: Member[] };
-type OdgFull = { id: string; date: string; notes?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
+type OdgFull = { id: string; date: string; status?: string | null; notes?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "" });
@@ -40,6 +40,14 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then(setOdg);
   useEffect(() => { load(); }, [odgId]);
+
+  const setStatus = async (status: string | null) => {
+    await fetch(`/api/odg/${odgId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    load();
+  };
 
   const addSession = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,14 +132,32 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           <ChevronRight size={14} />
           <span>ODG</span>
         </div>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight capitalize">{dateLabel}</h1>
             <p className="text-muted-foreground">{production.title} · {production.theatre.name}</p>
           </div>
-          <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants())}>
-            <FileDown size={15} /> Esporta PDF
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Status toggle */}
+            <div className="flex items-center rounded-lg border overflow-hidden text-sm">
+              <button
+                onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
+              >
+                <Check size={13} /> In lavorazione
+              </button>
+              <div className="w-px h-6 bg-border" />
+              <button
+                onClick={() => setStatus(odg.status === "DEFINITIVO" ? null : "DEFINITIVO")}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-100 text-green-700 font-semibold" : "text-muted-foreground hover:bg-muted/50"}`}
+              >
+                <Check size={13} /> Definitivo
+              </button>
+            </div>
+            <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
+              <FileDown size={15} /> PDF
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -310,6 +336,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                       <TableHead>Orario</TableHead>
                       <TableHead>Attività</TableHead>
                       <TableHead>Luogo</TableHead>
+                      <TableHead>Note</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -323,6 +350,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                         <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
                         <TableCell className="text-sm">{entry.activity}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
                         <TableCell>
                           <Button
                             size="icon" variant="ghost"

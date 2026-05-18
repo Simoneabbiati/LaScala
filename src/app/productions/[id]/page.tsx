@@ -15,7 +15,7 @@ type Person = { id: string; name: string; email?: string; phone?: string };
 type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person };
 type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
-type Odg = { id: string; date: string };
+type Odg = { id: string; date: string; status?: string | null };
 type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[] };
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
@@ -33,7 +33,6 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const [memberForm, setMemberForm] = useState({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
   const [editState, setEditState] = useState<EditState | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [odgDate, setOdgDate] = useState("");
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
 
   const load = () => fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
@@ -76,16 +75,6 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
       load();
     },
   });
-
-  const createOdg = async () => {
-    if (!odgDate) return;
-    const res = await fetch(`/api/productions/${id}/odg`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: odgDate }),
-    });
-    const odg = await res.json();
-    router.push(`/productions/${id}/odg/${odg.id}`);
-  };
 
   const deleteOdg = (odg: Odg) => {
     const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -139,58 +128,73 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
 
       <div className="grid grid-cols-2 gap-6">
         {/* ODG column — left 50% */}
-        <div className="space-y-5">
-          {/* Existing ODGs */}
-          <div>
-            <h2 className="text-base font-bold flex items-center gap-2 mb-3"><CalendarDays size={16} /> Ordini del Giorno</h2>
-            <div className="space-y-2">
-              {production.odgs.length === 0 && (
-                <p className="text-sm text-muted-foreground py-4">Nessun ODG ancora.</p>
-              )}
-              {production.odgs.map((odg) => {
-                const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-                return (
-                  <div key={odg.id} className="group flex items-center rounded-lg border bg-card hover:bg-accent/30 transition-colors">
-                    <Link href={`/productions/${id}/odg/${odg.id}`} className="flex-1 px-4 py-3">
-                      <p className="font-semibold capitalize">{dateLabel}</p>
-                    </Link>
-                    <Button
-                      size="icon" variant="ghost"
-                      className="mr-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteOdg(odg)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="space-y-4">
+          <h2 className="text-base font-bold flex items-center gap-2"><CalendarDays size={16} /> Ordini del Giorno</h2>
 
-          {/* Create new ODG */}
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Nuovo ordine del giorno</p>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="date"
-                value={odgDate}
-                onChange={(e) => setOdgDate(e.target.value)}
-                min={production.startDate ? production.startDate.slice(0, 10) : undefined}
-                max={production.endDate ? production.endDate.slice(0, 10) : undefined}
-                className="flex-1 bg-background"
-              />
-              <Button disabled={!odgDate} onClick={createOdg} className="shrink-0">
-                <Plus size={15} /> Crea ODG
-              </Button>
-            </div>
-            {production.startDate && (
-              <p className="text-xs text-muted-foreground mt-2.5 flex items-center gap-1.5">
-                <CalendarDays size={11} />
-                Range produzione: {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
-                {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}`}
-              </p>
-            )}
-          </div>
+          {/* One card per day in production range */}
+          {(() => {
+            if (!production.startDate || !production.endDate) {
+              return <p className="text-sm text-muted-foreground">Imposta date di inizio e fine produzione per vedere i giorni.</p>;
+            }
+            const start = new Date(production.startDate);
+            const end = new Date(production.endDate);
+            const days: Date[] = [];
+            const cur = new Date(start);
+            while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
+
+            return (
+              <div className="space-y-2">
+                {days.map((day) => {
+                  const dayStr = day.toISOString().slice(0, 10);
+                  const odg = production.odgs.find((o) => o.date.slice(0, 10) === dayStr);
+                  const label = day.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+
+                  const statusDot = !odg ? null
+                    : odg.status === "DEFINITIVO"
+                      ? <span className="flex items-center gap-1 text-xs font-medium text-green-600"><Check size={13} className="shrink-0" /> Definitivo</span>
+                      : odg.status === "BOZZA"
+                        ? <span className="flex items-center gap-1 text-xs font-medium text-amber-500"><Check size={13} className="shrink-0" /> In lavorazione</span>
+                        : <span className="text-xs text-muted-foreground">Iniziato</span>;
+
+                  if (odg) {
+                    return (
+                      <div key={dayStr} className="group flex items-center rounded-lg border bg-card hover:bg-accent/30 transition-colors">
+                        <Link href={`/productions/${id}/odg/${odg.id}`} className="flex-1 px-4 py-3 flex items-center justify-between">
+                          <p className="font-semibold capitalize text-sm">{label}</p>
+                          {statusDot}
+                        </Link>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="mr-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteOdg(odg)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={dayStr}
+                      onClick={async () => {
+                        const res = await fetch(`/api/productions/${id}/odg`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ date: dayStr }),
+                        });
+                        const newOdg = await res.json();
+                        router.push(`/productions/${id}/odg/${newOdg.id}`);
+                      }}
+                      className="w-full flex items-center justify-between rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border/80 hover:bg-muted/20 transition-colors cursor-pointer"
+                    >
+                      <span className="capitalize font-medium">{label}</span>
+                      <span className="flex items-center gap-1 text-xs"><Plus size={12} /> Crea ODG</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Roster — right 50% */}

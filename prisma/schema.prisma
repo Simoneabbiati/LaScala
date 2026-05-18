@@ -71,6 +71,7 @@ model Odg {
   productionId String
   production   Production   @relation(fields: [productionId], references: [id], onDelete: Cascade)
   date         DateTime
+  status       String?      // null | "BOZZA" | "DEFINITIVO"
   notes        String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
