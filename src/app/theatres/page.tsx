@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, ImageSearch, MapPin, Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
+import { Building2, MapPin, Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

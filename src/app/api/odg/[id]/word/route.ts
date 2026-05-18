@@ -105,7 +105,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     }));
     const sessionTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideH: thinBorder, insideV: noBorder },
+      borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
       rows: odg.sessions.map((s) =>
         new TableRow({
           children: [
@@ -150,7 +150,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
     const table = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideH: thinBorder, insideV: noBorder },
+      borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
       rows: [
         new TableRow({
           tableHeader: true,
@@ -196,8 +196,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   });
 
   const buffer = await Packer.toBuffer(doc);
+  const uint8 = new Uint8Array(buffer);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(uint8, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="ODG-${odg.production.title}-${odg.date.toString().slice(0, 10)}.docx"`,
