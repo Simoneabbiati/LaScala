@@ -179,18 +179,26 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
           </form>
         ) : (
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="space-y-1.5">
               <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
-              <p className="text-muted-foreground mt-0.5">
-                {production.composer && <span>{production.composer} · </span>}
-                {production.theatre.name}, {production.theatre.city}
-                {production.startDate && (
-                  <span className="ml-2">
-                    {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
-                    {production.endDate && ` → ${new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`}
-                  </span>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                {production.composer && (
+                  <span className="font-medium text-foreground/70">{production.composer}</span>
                 )}
-              </p>
+                {production.composer && <span className="text-border">|</span>}
+                <span>{production.theatre.name} · {production.theatre.city}</span>
+                {production.startDate && (
+                  <>
+                    <span className="text-border">|</span>
+                    <span>
+                      {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                      {production.endDate && (
+                        <> &rarr; {new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</>
+                      )}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
             <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
           </div>
