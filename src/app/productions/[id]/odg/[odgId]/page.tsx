@@ -131,7 +131,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     onConfirm: async () => { await fetch(`/api/odg/${odgId}/entries/${id}`, { method: "DELETE" }); setConfirm(defaultConfirm); load(); },
   });
 
-  // When user picks an activity, auto-fill time and location from the matching session
   const handleEntryActivity = (activity: string) => {
     const match = odg?.sessions.find((s) => s.activity === activity);
     setEntryForm((prev) => ({
@@ -211,7 +210,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const locations = production.theatre.locations;
   const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  // Only activities already defined in the day sessions
   const sessionActivities = odg.sessions.map((s) => ({ activity: s.activity, location: s.location }));
   const uniqueSessionActivities = sessionActivities.filter((a, i, arr) => arr.findIndex((b) => b.activity === a.activity) === i);
 
@@ -224,12 +222,96 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     return acc;
   }, {});
 
+  // Group sessions by location for display
+  type SessionGroup = { locationId: string | null; locationName: string | null; sessions: OdgSession[] };
+  const sessionGroups: SessionGroup[] = [];
+  const groupIndex = new Map<string | null, number>();
+  for (const s of odg.sessions) {
+    const key = s.location?.id ?? null;
+    if (!groupIndex.has(key)) {
+      groupIndex.set(key, sessionGroups.length);
+      sessionGroups.push({ locationId: key, locationName: s.location?.name ?? null, sessions: [] });
+    }
+    sessionGroups[groupIndex.get(key)!].sessions.push(s);
+  }
+  const showLocationHeaders = sessionGroups.length > 1 || (sessionGroups.length === 1 && sessionGroups[0].locationId !== null);
+
+  const entryRow = (entry: OdgEntry, isExtras = false) => {
+    if (editEntry?.id === entry.id) {
+      return (
+        <TableRow key={entry.id}>
+          <TableCell colSpan={6}>
+            <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium shrink-0">
+                {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—")}
+              </span>
+              {isExtras ? (
+                <Input type="number" min={1} value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Numero" className="h-7 w-20 text-sm" />
+              ) : entry.member.department === "CAST" ? (
+                <Input value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Personaggio" className="h-7 w-28 text-sm" />
+              ) : null}
+              <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
+              <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
+              <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
+                {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
+              </select>
+              <select value={editEntry.locationId} onChange={(e) => setEditEntry({ ...editEntry, locationId: e.target.value })} className="w-32 border border-input rounded px-2 py-1 text-sm bg-background">
+                <option value="">—</option>
+                {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              {!isExtras && <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />}
+              <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
+            </form>
+          </TableCell>
+        </TableRow>
+      );
+    }
+    return (
+      <TableRow key={entry.id} className="group">
+        <TableCell>
+          {isExtras ? (
+            <>
+              <div className="font-medium text-sm">{entry.member.roleTitle}</div>
+              {entry.characterName && <div className="text-xs text-muted-foreground">× {entry.characterName}</div>}
+            </>
+          ) : (
+            <>
+              <div className="font-medium text-sm">{entry.member.person?.name ?? "—"}</div>
+              {entry.member.department === "CAST" ? (
+                <div className="text-xs text-muted-foreground italic">{(entry.characterName ?? entry.member.characterName) || "—"}</div>
+              ) : (
+                <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+              )}
+            </>
+          )}
+        </TableCell>
+        <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
+        <TableCell className="text-sm">{entry.activity}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">{isExtras ? "—" : (entry.notes ?? "—")}</TableCell>
+        <TableCell>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
+              onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "", characterName: entry.characterName ?? entry.member.characterName ?? "" })}>
+              <Pencil size={12} />
+            </Button>
+            <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
+              onClick={() => deleteEntry(entry.id, isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—"))}>
+              <Trash2 size={12} />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100dvh-4rem)]">
       <ConfirmDialog {...confirm} destructive confirmLabel="Elimina" onCancel={() => setConfirm(defaultConfirm)} />
 
-      {/* Header */}
-      <div>
+      {/* Header — always visible */}
+      <div className="shrink-0 mb-4">
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1">
           <Link href="/productions" className="hover:text-foreground">Produzioni</Link>
           <ChevronRight size={14} />
@@ -243,7 +325,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <p className="text-muted-foreground">{production.title} · {production.theatre.name}</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {/* Status toggle */}
             <div className="flex rounded-md border overflow-hidden text-sm">
               <button
                 onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
@@ -258,7 +339,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 {odg.status === "DEFINITIVO" && <Check size={13} />} Definitivo
               </button>
             </div>
-            {/* Export buttons */}
             <div className="flex gap-1.5">
               <button onClick={() => flushAndExport(`/api/odg/${odgId}/pdf`, true)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
                 <FileDown size={14} /> PDF
@@ -271,416 +351,349 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         </div>
       </div>
 
-      {/* Programma del giorno */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Programma del giorno</CardTitle>
-            <Button size="sm" variant="outline" onClick={() => setShowSessionForm(!showSessionForm)}>
-              <Plus size={13} /> Aggiungi blocco
-            </Button>
-          </div>
-        </CardHeader>
+      {/* Body: 2-column split */}
+      <div className="flex flex-1 min-h-0 gap-6">
 
-        {(odg.sessions.length > 0 || showSessionForm) && <Separator />}
+        {/* LEFT: Programma del giorno + Appunti */}
+        <div className="w-[340px] shrink-0 flex flex-col gap-4 min-h-0">
 
-        <CardContent className="pt-3 space-y-1">
-          {odg.sessions.length === 0 && !showSessionForm && (
-            <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessun blocco orario ancora.</p>
-          )}
+          {/* Programma del giorno */}
+          <Card className="flex flex-col min-h-0 flex-1 overflow-hidden">
+            <CardHeader className="pb-3 shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold">Programma del giorno</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setShowSessionForm(!showSessionForm)}>
+                  <Plus size={13} /> Aggiungi blocco
+                </Button>
+              </div>
+            </CardHeader>
 
-          {(() => {
-            type SessionGroup = { locationId: string | null; locationName: string | null; sessions: OdgSession[] };
-            const groups: SessionGroup[] = [];
-            const groupIndex = new Map<string | null, number>();
-            for (const s of odg.sessions) {
-              const key = s.location?.id ?? null;
-              if (!groupIndex.has(key)) {
-                groupIndex.set(key, groups.length);
-                groups.push({ locationId: key, locationName: s.location?.name ?? null, sessions: [] });
-              }
-              groups[groupIndex.get(key)!].sessions.push(s);
-            }
-            const showHeaders = groups.length > 1 || (groups.length === 1 && groups[0].locationId !== null);
+            {(odg.sessions.length > 0 || showSessionForm) && <Separator />}
 
-            return groups.map((group) => (
-              <div key={group.locationId ?? "__none__"} className="space-y-0.5">
-                {showHeaders && (
-                  <div className="flex items-center gap-2 px-2 pt-2 pb-0.5">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
-                      {group.locationName ?? "Nessun luogo"}
-                    </span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                )}
-                {group.sessions.map((s) => {
-                  if (editSession?.id === s.id) {
-                    return (
-                      <form key={s.id} onSubmit={saveSession} className="flex items-center gap-2 bg-muted/40 rounded-lg px-2 py-1.5">
-                        <Input type="time" value={editSession.startTime} onChange={(e) => setEditSession({ ...editSession, startTime: e.target.value })} className="h-7 w-24 text-sm" />
-                        <Input type="time" value={editSession.endTime} onChange={(e) => setEditSession({ ...editSession, endTime: e.target.value })} className="h-7 w-24 text-sm" />
-                        <select value={editSession.activity} onChange={(e) => setEditSession({ ...editSession, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
-                          {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
-                        </select>
-                        <select value={editSession.locationId} onChange={(e) => setEditSession({ ...editSession, locationId: e.target.value })} className="w-36 border border-input rounded px-2 py-1 text-sm bg-background">
-                          <option value="">—</option>
-                          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                        </select>
-                        <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
-                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditSession(null)}><X size={13} /></Button>
-                      </form>
-                    );
-                  }
-                  return (
-                    <div key={s.id} className="group flex items-center gap-3 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
-                      <span className="font-mono text-muted-foreground w-28 shrink-0">{s.startTime} – {s.endTime}</span>
-                      <span className="font-medium">{s.activity}</span>
-                      {!showHeaders && s.location && <span className="text-muted-foreground text-xs">({s.location.name})</span>}
-                      <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
-                          <Pencil size={11} />
-                        </Button>
-                        <Button size="icon" variant="ghost-destructive" className="h-6 w-6" onClick={() => deleteSession(s.id)}>
-                          <Trash2 size={11} />
-                        </Button>
-                      </div>
+            <CardContent className="pt-3 space-y-1 overflow-y-auto flex-1 min-h-0">
+              {odg.sessions.length === 0 && !showSessionForm && (
+                <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessun blocco orario ancora.</p>
+              )}
+
+              {sessionGroups.map((group) => (
+                <div key={group.locationId ?? "__none__"} className="space-y-0.5">
+                  {showLocationHeaders && (
+                    <div className="flex items-center gap-2 px-2 pt-2 pb-0.5">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                        {group.locationName ?? "Nessun luogo"}
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
                     </div>
-                  );
-                })}
-              </div>
-            ));
-          })()}
-
-          {showSessionForm && (
-            <form onSubmit={addSession} className="px-1 pt-2 pb-1 space-y-2 mt-2">
-              <div className="grid grid-cols-5 gap-2">
-                <FormField label="Tipo di attività" className="col-span-2">
-                  <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                    <option value="">Seleziona attività…</option>
-                    {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Ora inizio">
-                  <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
-                </FormField>
-                <FormField label="Ora fine">
-                  <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
-                </FormField>
-                <FormField label="Sala / Luogo">
-                  <select value={sessionForm.locationId} onChange={(e) => setSessionForm({ ...sessionForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                    <option value="">Nessuna sede</option>
-                    {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
-                </FormField>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm">Aggiungi</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setShowSessionForm(false)}>Annulla</Button>
-              </div>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Chiamate individuali */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Chiamate individuali</CardTitle>
-            <Button size="sm" variant="outline" onClick={() => setShowEntryForm(!showEntryForm)}>
-              <Plus size={14} /> Aggiungi chiamata
-            </Button>
-          </div>
-        </CardHeader>
-
-        {(odg.entries.length > 0 || showEntryForm) && <Separator />}
-
-        <CardContent className="pt-3 space-y-3">
-
-        {showEntryForm && (
-          <form onSubmit={addEntry} className="space-y-3 pb-2">
-            <div className="grid grid-cols-3 gap-3">
-              <FormField label="Attività *">
-                {uniqueSessionActivities.length > 0 ? (
-                  <select required value={entryForm.activity} onChange={(e) => handleEntryActivity(e.target.value)} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                    <option value="">Seleziona attività...</option>
-                    {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
-                  </select>
-                ) : (
-                  <p className="text-xs text-amber-600 pt-1.5">Aggiungi prima un blocco nel programma del giorno.</p>
-                )}
-              </FormField>
-              <FormField label="Orario inizio *">
-                <Input required type="time" value={entryForm.startTime} onChange={(e) => setEntryForm({ ...entryForm, startTime: e.target.value })} className="h-8 text-sm" />
-              </FormField>
-              <FormField label="Orario fine *">
-                <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
-              </FormField>
-              <FormField label="Persona *">
-                <select required value={entryForm.memberId} onChange={(e) => {
-                  const m = production.members.find((mb) => mb.id === e.target.value);
-                  setEntryForm({ ...entryForm, memberId: e.target.value, characterName: m?.characterName ?? "" });
-                }} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                  <option value="">Seleziona persona...</option>
-                  {fullDeptOrder.map((dept) => {
-                    const members = production.members.filter((m) => m.department === dept);
-                    if (!members.length) return null;
-                    const isExtras = dept === "CAST_EXTRAS";
-                    const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (deptLabel[dept] ?? dept));
+                  )}
+                  {group.sessions.map((s) => {
+                    if (editSession?.id === s.id) {
+                      return (
+                        <form key={s.id} onSubmit={saveSession} className="space-y-2 bg-muted/40 rounded-lg p-2">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <Input type="time" value={editSession.startTime} onChange={(e) => setEditSession({ ...editSession, startTime: e.target.value })} className="h-7 text-sm" />
+                            <Input type="time" value={editSession.endTime} onChange={(e) => setEditSession({ ...editSession, endTime: e.target.value })} className="h-7 text-sm" />
+                          </div>
+                          <select value={editSession.activity} onChange={(e) => setEditSession({ ...editSession, activity: e.target.value })} className="w-full border border-input rounded px-2 py-1 text-sm bg-background">
+                            {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                          </select>
+                          <select value={editSession.locationId} onChange={(e) => setEditSession({ ...editSession, locationId: e.target.value })} className="w-full border border-input rounded px-2 py-1 text-sm bg-background">
+                            <option value="">—</option>
+                            {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                          </select>
+                          <div className="flex gap-1.5">
+                            <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditSession(null)}><X size={13} /></Button>
+                          </div>
+                        </form>
+                      );
+                    }
                     return (
-                      <optgroup key={dept} label={label}>
-                        {members
-                          .filter((m) => isExtras || m.person)
-                          .map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {isExtras ? m.roleTitle : `${m.person!.name}${m.characterName ? ` — ${m.characterName}` : ""}${m.department === "CAST" ? ` (${m.roleTitle})` : ""}`}
-                            </option>
-                          ))}
-                      </optgroup>
+                      <div key={s.id} className="group flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                        <span className="font-mono text-muted-foreground text-xs shrink-0">{s.startTime} – {s.endTime}</span>
+                        <span className="font-medium truncate flex-1">{s.activity}</span>
+                        {!showLocationHeaders && s.location && <span className="text-muted-foreground text-xs shrink-0">({s.location.name})</span>}
+                        <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
+                            <Pencil size={11} />
+                          </Button>
+                          <Button size="icon" variant="ghost-destructive" className="h-6 w-6" onClick={() => deleteSession(s.id)}>
+                            <Trash2 size={11} />
+                          </Button>
+                        </div>
+                      </div>
                     );
                   })}
-                </select>
-              </FormField>
-              {(() => {
-                const sel = production.members.find((m) => m.id === entryForm.memberId);
-                if (sel?.department === "CAST_EXTRAS") {
-                  return (
-                    <FormField label="Numero convocati">
-                      <Input type="number" min={1} value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. 15" className="h-8 text-sm" />
-                    </FormField>
-                  );
-                }
-                return (
-                  <FormField label="Personaggio">
-                    <Input value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. Violetta" className="h-8 text-sm" />
+                </div>
+              ))}
+
+              {showSessionForm && (
+                <form onSubmit={addSession} className="pt-2 pb-1 space-y-2">
+                  <FormField label="Tipo di attività">
+                    <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                      <option value="">Seleziona attività…</option>
+                      {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                    </select>
                   </FormField>
-                );
-              })()}
-              <FormField label="Luogo">
-                <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                  <option value="">—</option>
-                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
-              </FormField>
-              <FormField label="Note">
-                <Input value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} placeholder="Note opzionali" className="h-8 text-sm" />
-              </FormField>
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" size="sm">Aggiungi</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setShowEntryForm(false)}>Annulla</Button>
-            </div>
-          </form>
-        )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <FormField label="Ora inizio">
+                      <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
+                    </FormField>
+                    <FormField label="Ora fine">
+                      <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
+                    </FormField>
+                  </div>
+                  <FormField label="Sala / Luogo">
+                    <select value={sessionForm.locationId} onChange={(e) => setSessionForm({ ...sessionForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                      <option value="">Nessuna sede</option>
+                      {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </FormField>
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm">Aggiungi</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setShowSessionForm(false)}>Annulla</Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
 
-        {odg.entries.length === 0 && !showEntryForm && (
-          <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessuna chiamata ancora.</p>
-        )}
-
-        <div className="space-y-3">
-          {fullDeptOrder.map((dept) => {
-            if (dept === "CAST_EXTRAS") return null;
-            const entries = entriesByDept[dept] ?? [];
-            const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
-            const linked = linkedByParent[dept] ?? [];
-            const linkedEntries = linked.flatMap((ld) => entriesByDept[ld.value] ?? []);
-            if (!entries.length && !extrasEntries.length && !linkedEntries.length) return null;
-
-            const deptSectionLabel = dept === "CAST" ? "Compagnia" : (deptLabel[dept] ?? dept);
-            const deptSectionBg = deptBg[dept] ?? "#e5e5e544";
-            const showSolistiHeader = dept === "CAST" && extrasEntries.length > 0 && entries.length > 0;
-
-            const entryRow = (entry: OdgEntry, isExtras = false) => {
-              if (editEntry?.id === entry.id) {
-                return (
-                  <TableRow key={entry.id}>
-                    <TableCell colSpan={6}>
-                      <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium shrink-0">
-                          {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—")}
-                        </span>
-                        {isExtras ? (
-                          <Input type="number" min={1} value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Numero" className="h-7 w-20 text-sm" />
-                        ) : entry.member.department === "CAST" ? (
-                          <Input value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Personaggio" className="h-7 w-28 text-sm" />
-                        ) : null}
-                        <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
-                        <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
-                        <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
-                          {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
-                        </select>
-                        <select value={editEntry.locationId} onChange={(e) => setEditEntry({ ...editEntry, locationId: e.target.value })} className="w-32 border border-input rounded px-2 py-1 text-sm bg-background">
-                          <option value="">—</option>
-                          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                        </select>
-                        {!isExtras && <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />}
-                        <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
-                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
-                      </form>
-                    </TableCell>
-                  </TableRow>
-                );
-              }
-              return (
-                <TableRow key={entry.id} className="group">
-                  <TableCell>
-                    {isExtras ? (
-                      <>
-                        <div className="font-medium text-sm">{entry.member.roleTitle}</div>
-                        {entry.characterName && <div className="text-xs text-muted-foreground">× {entry.characterName}</div>}
-                      </>
-                    ) : (
-                      <>
-                        <div className="font-medium text-sm">{entry.member.person?.name ?? "—"}</div>
-                        {entry.member.department === "CAST" ? (
-                          <div className="text-xs text-muted-foreground italic">{(entry.characterName ?? entry.member.characterName) || "—"}</div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
-                        )}
-                      </>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
-                  <TableCell className="text-sm">{entry.activity}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{isExtras ? "—" : (entry.notes ?? "—")}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
-                        onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "", characterName: entry.characterName ?? entry.member.characterName ?? "" })}>
-                        <Pencil size={12} />
-                      </Button>
-                      <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
-                        onClick={() => deleteEntry(entry.id, isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—"))}>
-                        <Trash2 size={12} />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            };
-
-            return (
-              <Card key={dept} className="overflow-hidden">
-                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptSectionBg }}>{deptSectionLabel}</div>
-                {entries.length > 0 && (
-                  <>
-                    {showSolistiHeader && (
-                      <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/20">Solisti</div>
-                    )}
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                      <TableBody>{entries.map((e) => entryRow(e, false))}</TableBody>
-                    </Table>
-                  </>
+          {/* Appunti: Note + Extra Events merged */}
+          <Card className="shrink-0">
+            <CardContent className="pt-3 pb-3 space-y-3">
+              {/* Note */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Note</span>
+                  {!showNotes && (
+                    <button onClick={() => { setShowNotes(true); setEditingNotes(true); }} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <Plus size={13} />
+                    </button>
+                  )}
+                </div>
+                {showNotes && editingNotes && (
+                  <div className="space-y-1.5">
+                    <textarea
+                      autoFocus
+                      value={notesValue}
+                      onChange={(e) => handleNotesChange(e.target.value)}
+                      placeholder="Scrivi una nota..."
+                      rows={3}
+                      className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <Button size="sm" onClick={() => saveNotesNow(latestNotes.current)}>Salva</Button>
+                  </div>
                 )}
-                {extrasEntries.length > 0 && (
-                  <>
-                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">Extras</div>
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead></TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                      <TableBody>{extrasEntries.map((e) => entryRow(e, true))}</TableBody>
-                    </Table>
-                  </>
+                {showNotes && !editingNotes && (
+                  <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                    <p className="flex-1 text-sm whitespace-pre-wrap">{notesValue}</p>
+                    <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingNotes(true)}>
+                      <Pencil size={11} />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveNotesNow("")}>
+                      <Trash2 size={11} />
+                    </Button>
+                  </div>
                 )}
-                {linked.map((ld) => {
-                  const ldEntries = entriesByDept[ld.value] ?? [];
-                  if (!ldEntries.length) return null;
-                  return (
-                    <React.Fragment key={ld.value}>
-                      <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">{ld.label}</div>
-                      <Table>
-                        <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                        <TableBody>{ldEntries.map((e) => entryRow(e, false))}</TableBody>
-                      </Table>
-                    </React.Fragment>
-                  );
-                })}
-              </Card>
-            );
-          })}
+                {!showNotes && <p className="text-xs text-muted-foreground italic">Nessuna nota.</p>}
+              </div>
+
+              <Separator />
+
+              {/* Extra Events */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Eventi collaterali</span>
+                  {!showExtraEvents && (
+                    <button onClick={() => { setShowExtraEvents(true); setEditingExtraEvents(true); }} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <Plus size={13} />
+                    </button>
+                  )}
+                </div>
+                {showExtraEvents && editingExtraEvents && (
+                  <div className="space-y-1.5">
+                    <textarea
+                      autoFocus
+                      value={extraEventsValue}
+                      onChange={(e) => handleExtraEventsChange(e.target.value)}
+                      placeholder="Es. OPERA INTRO ore 15.00 in Foyer Erker"
+                      rows={3}
+                      className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <Button size="sm" onClick={() => saveExtraEventsNow(latestExtraEvents.current)}>Salva</Button>
+                  </div>
+                )}
+                {showExtraEvents && !editingExtraEvents && (
+                  <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                    <p className="flex-1 text-sm whitespace-pre-wrap">{extraEventsValue}</p>
+                    <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingExtraEvents(true)}>
+                      <Pencil size={11} />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveExtraEventsNow("")}>
+                      <Trash2 size={11} />
+                    </Button>
+                  </div>
+                )}
+                {!showExtraEvents && <p className="text-xs text-muted-foreground italic">Nessun evento collaterale.</p>}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        </CardContent>
-      </Card>
+        {/* RIGHT: Chiamate individuali */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold">Chiamate individuali</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setShowEntryForm(!showEntryForm)}>
+                  <Plus size={14} /> Aggiungi chiamata
+                </Button>
+              </div>
+            </CardHeader>
 
-      {/* Eventi collaterali */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Eventi collaterali</CardTitle>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-3 space-y-2">
-          {showExtraEvents && editingExtraEvents && (
-            <>
-              <textarea
-                autoFocus
-                value={extraEventsValue}
-                onChange={(e) => handleExtraEventsChange(e.target.value)}
-                placeholder="Es. OPERA INTRO ore 15.00 in Foyer Erker - Moderatore: Diego Villegas"
-                rows={4}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <Button size="sm" onClick={() => saveExtraEventsNow(latestExtraEvents.current)}>Salva</Button>
-            </>
-          )}
-          {showExtraEvents && !editingExtraEvents && (
-            <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
-              <p className="flex-1 text-sm whitespace-pre-wrap">{extraEventsValue}</p>
-              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingExtraEvents(true)}>
-                <Pencil size={11} />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveExtraEventsNow("")}>
-                <Trash2 size={11} />
-              </Button>
-            </div>
-          )}
-          {!showExtraEvents && (
-            <button onClick={() => { setShowExtraEvents(true); setEditingExtraEvents(true); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
-              <Plus size={13} /> Aggiungi evento collaterale
-            </button>
-          )}
-        </CardContent>
-      </Card>
+            {(odg.entries.length > 0 || showEntryForm) && <Separator />}
 
-      {/* Note */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Note</CardTitle>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-3 space-y-2">
-          {showNotes && editingNotes && (
-            <>
-              <textarea
-                autoFocus
-                value={notesValue}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder="Scrivi una nota..."
-                rows={4}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <Button size="sm" onClick={() => saveNotesNow(latestNotes.current)}>Salva</Button>
-            </>
-          )}
-          {showNotes && !editingNotes && (
-            <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
-              <p className="flex-1 text-sm whitespace-pre-wrap">{notesValue}</p>
-              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingNotes(true)}>
-                <Pencil size={11} />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveNotesNow("")}>
-                <Trash2 size={11} />
-              </Button>
-            </div>
-          )}
-          {!showNotes && (
-            <button onClick={() => { setShowNotes(true); setEditingNotes(true); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
-              <Plus size={13} /> Aggiungi nota
-            </button>
-          )}
-        </CardContent>
-      </Card>
+            <CardContent className="pt-3 space-y-3">
+
+              {showEntryForm && (
+                <form onSubmit={addEntry} className="space-y-3 pb-2">
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Attività *">
+                      {uniqueSessionActivities.length > 0 ? (
+                        <select required value={entryForm.activity} onChange={(e) => handleEntryActivity(e.target.value)} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                          <option value="">Seleziona attività...</option>
+                          {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-amber-600 pt-1.5">Aggiungi prima un blocco nel programma del giorno.</p>
+                      )}
+                    </FormField>
+                    <FormField label="Orario inizio *">
+                      <Input required type="time" value={entryForm.startTime} onChange={(e) => setEntryForm({ ...entryForm, startTime: e.target.value })} className="h-8 text-sm" />
+                    </FormField>
+                    <FormField label="Orario fine *">
+                      <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
+                    </FormField>
+                    <FormField label="Persona *">
+                      <select required value={entryForm.memberId} onChange={(e) => {
+                        const m = production.members.find((mb) => mb.id === e.target.value);
+                        setEntryForm({ ...entryForm, memberId: e.target.value, characterName: m?.characterName ?? "" });
+                      }} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                        <option value="">Seleziona persona...</option>
+                        {fullDeptOrder.map((dept) => {
+                          const members = production.members.filter((m) => m.department === dept);
+                          if (!members.length) return null;
+                          const isExtras = dept === "CAST_EXTRAS";
+                          const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (deptLabel[dept] ?? dept));
+                          return (
+                            <optgroup key={dept} label={label}>
+                              {members
+                                .filter((m) => isExtras || m.person)
+                                .map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {isExtras ? m.roleTitle : `${m.person!.name}${m.characterName ? ` — ${m.characterName}` : ""}${m.department === "CAST" ? ` (${m.roleTitle})` : ""}`}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          );
+                        })}
+                      </select>
+                    </FormField>
+                    {(() => {
+                      const sel = production.members.find((m) => m.id === entryForm.memberId);
+                      if (sel?.department === "CAST_EXTRAS") {
+                        return (
+                          <FormField label="Numero convocati">
+                            <Input type="number" min={1} value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. 15" className="h-8 text-sm" />
+                          </FormField>
+                        );
+                      }
+                      return (
+                        <FormField label="Personaggio">
+                          <Input value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. Violetta" className="h-8 text-sm" />
+                        </FormField>
+                      );
+                    })()}
+                    <FormField label="Luogo">
+                      <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                        <option value="">—</option>
+                        {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                    </FormField>
+                    <FormField label="Note">
+                      <Input value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} placeholder="Note opzionali" className="h-8 text-sm" />
+                    </FormField>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm">Aggiungi</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setShowEntryForm(false)}>Annulla</Button>
+                  </div>
+                </form>
+              )}
+
+              {odg.entries.length === 0 && !showEntryForm && (
+                <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessuna chiamata ancora.</p>
+              )}
+
+              <div className="space-y-3">
+                {fullDeptOrder.map((dept) => {
+                  if (dept === "CAST_EXTRAS") return null;
+                  const entries = entriesByDept[dept] ?? [];
+                  const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
+                  const linked = linkedByParent[dept] ?? [];
+                  const linkedEntries = linked.flatMap((ld) => entriesByDept[ld.value] ?? []);
+                  if (!entries.length && !extrasEntries.length && !linkedEntries.length) return null;
+
+                  const deptSectionLabel = dept === "CAST" ? "Compagnia" : (deptLabel[dept] ?? dept);
+                  const deptSectionBg = deptBg[dept] ?? "#e5e5e544";
+                  const showSolistiHeader = dept === "CAST" && extrasEntries.length > 0 && entries.length > 0;
+
+                  return (
+                    <Card key={dept} className="overflow-hidden">
+                      <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptSectionBg }}>{deptSectionLabel}</div>
+                      {entries.length > 0 && (
+                        <>
+                          {showSolistiHeader && (
+                            <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/20">Solisti</div>
+                          )}
+                          <Table>
+                            <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                            <TableBody>{entries.map((e) => entryRow(e, false))}</TableBody>
+                          </Table>
+                        </>
+                      )}
+                      {extrasEntries.length > 0 && (
+                        <>
+                          <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">Extras</div>
+                          <Table>
+                            <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead></TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                            <TableBody>{extrasEntries.map((e) => entryRow(e, true))}</TableBody>
+                          </Table>
+                        </>
+                      )}
+                      {linked.map((ld) => {
+                        const ldEntries = entriesByDept[ld.value] ?? [];
+                        if (!ldEntries.length) return null;
+                        return (
+                          <React.Fragment key={ld.value}>
+                            <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">{ld.label}</div>
+                            <Table>
+                              <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                              <TableBody>{ldEntries.map((e) => entryRow(e, false))}</TableBody>
+                            </Table>
+                          </React.Fragment>
+                        );
+                      })}
+                    </Card>
+                  );
+                })}
+              </div>
+
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
