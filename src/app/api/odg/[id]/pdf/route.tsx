@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   docType: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 2 },
   dateLabel: { fontSize: 9, marginTop: 2, color: "#555" },
   overviewWrapper: { border: "1 solid #ddd", marginBottom: 12 },
-  overviewTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#555", backgroundColor: "#f5f5f5", padding: "4 8", borderBottom: "0.5 solid #ddd" },
+  overviewTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#555", backgroundColor: "#f5f5f5", padding: "4 8", borderBottom: "0.5 solid #ddd", textAlign: "center" },
   overview: { padding: 8, textAlign: "center" },
   overviewRow: { fontSize: 9, marginBottom: 2 },
   section: { marginBottom: 10 },

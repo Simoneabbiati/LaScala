@@ -101,10 +101,10 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (odg.sessions.length > 0) {
     children.push(new Paragraph({
       children: [new TextRun({ text: "PROGRAMMA DEL GIORNO", bold: true, size: 18, color: "555555" })],
+      alignment: AlignmentType.CENTER,
       shading: { type: ShadingType.SOLID, color: "F5F5F5" },
       border: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder },
       spacing: { after: 0 },
-      indent: { left: convertInchesToTwip(0.1), right: convertInchesToTwip(0.1) },
     }));
     const sessionTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
