@@ -497,7 +497,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                             {entry.member.department === "CAST" ? (
                               <div className="text-xs text-muted-foreground italic">
                                 {(entry.characterName ?? entry.member.characterName) || "—"}
-                                <span className="text-muted-foreground/60 not-italic"> · {entry.member.roleTitle}</span>
                               </div>
                             ) : (
                               <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>

@@ -19,7 +19,7 @@ const lighten = (hex: string): string => {
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 9, padding: 30, paddingBottom: 60 },
+  page: { fontFamily: "Helvetica", fontSize: 9, padding: 30, paddingBottom: 80 },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16, borderBottom: "1 solid #ddd", paddingBottom: 10 },
   headerLeft: { flexDirection: "column" },
   theatreName: { fontSize: 11, fontFamily: "Helvetica-Bold" },
@@ -27,7 +27,9 @@ const styles = StyleSheet.create({
   productionTitle: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#c0392b" },
   docType: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 2 },
   dateLabel: { fontSize: 9, marginTop: 2, color: "#555" },
-  overview: { border: "1 solid #ddd", padding: 8, marginBottom: 12, textAlign: "center" },
+  overviewWrapper: { border: "1 solid #ddd", marginBottom: 12 },
+  overviewTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#555", backgroundColor: "#f5f5f5", padding: "4 8", borderBottom: "0.5 solid #ddd" },
+  overview: { padding: 8, textAlign: "center" },
   overviewRow: { fontSize: 9, marginBottom: 2 },
   section: { marginBottom: 10 },
   sectionHeader: { padding: "4 6", fontFamily: "Helvetica-Bold", fontSize: 9 },
@@ -43,7 +45,8 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 4 },
   footerRow: { flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: "#aaa" },
-  footerStageManager: { fontSize: 7, color: "#555", textAlign: "center", marginTop: 3 },
+  footerSmRow: { flexDirection: "row", justifyContent: "center", marginTop: 3 },
+  footerStageManager: { fontSize: 7, color: "#555", textAlign: "center" },
   notesSection: { marginTop: 16, marginBottom: 8 },
   notesSectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#555555", marginBottom: 6, textAlign: "center" },
   notesBox: { border: "1 solid #ddd", padding: 8, minHeight: 40, fontSize: 9 },
@@ -96,12 +99,15 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
         {/* Day overview */}
         {odg.sessions.length > 0 && (
-          <View style={styles.overview}>
-            {odg.sessions.map((s) => (
-              <Text key={s.id} style={styles.overviewRow}>
-                {s.startTime} - {s.endTime}  {s.activity}{s.location ? `  (${s.location.name})` : ""}
-              </Text>
-            ))}
+          <View style={styles.overviewWrapper}>
+            <Text style={styles.overviewTitle}>PROGRAMMA DEL GIORNO</Text>
+            <View style={styles.overview}>
+              {odg.sessions.map((s) => (
+                <Text key={s.id} style={styles.overviewRow}>
+                  {s.startTime} - {s.endTime}  {s.activity}{s.location ? `  (${s.location.name})` : ""}
+                </Text>
+              ))}
+            </View>
           </View>
         )}
 
@@ -166,22 +172,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
             <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
           {(odg.production.stageManagerName || odg.production.asstStageManagerName) && (
-            <View>
+            <View style={{ width: "100%" }}>
               {odg.production.stageManagerName && (
-                <Text style={styles.footerStageManager}>
-                  {"Direzione di scena/Stage manager: "}
-                  {odg.production.stageManagerName}
-                  {odg.production.stageManagerEmail ? ` | ${odg.production.stageManagerEmail}` : ""}
-                  {odg.production.stageManagerPhone ? ` | ${odg.production.stageManagerPhone}` : ""}
-                </Text>
+                <View style={styles.footerSmRow}>
+                  <Text style={styles.footerStageManager}>
+                    {"Direzione di scena/Stage manager: "}
+                    {odg.production.stageManagerName}
+                    {odg.production.stageManagerEmail ? ` | ${odg.production.stageManagerEmail}` : ""}
+                    {odg.production.stageManagerPhone ? ` | ${odg.production.stageManagerPhone}` : ""}
+                  </Text>
+                </View>
               )}
               {odg.production.asstStageManagerName && (
-                <Text style={styles.footerStageManager}>
-                  {"Assistente Direzione di Scena/Assistant Stage Manager: "}
-                  {odg.production.asstStageManagerName}
-                  {odg.production.asstStageManagerEmail ? ` | ${odg.production.asstStageManagerEmail}` : ""}
-                  {odg.production.asstStageManagerPhone ? ` | ${odg.production.asstStageManagerPhone}` : ""}
-                </Text>
+                <View style={styles.footerSmRow}>
+                  <Text style={styles.footerStageManager}>
+                    {"Assistente Direzione di Scena/Assistant Stage Manager: "}
+                    {odg.production.asstStageManagerName}
+                    {odg.production.asstStageManagerEmail ? ` | ${odg.production.asstStageManagerEmail}` : ""}
+                    {odg.production.asstStageManagerPhone ? ` | ${odg.production.asstStageManagerPhone}` : ""}
+                  </Text>
+                </View>
               )}
             </View>
           )}
