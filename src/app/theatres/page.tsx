@@ -244,19 +244,9 @@ export default function TheatresPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground">URL immagine</label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={editState.logoUrl}
-                            onChange={(e) => setEditState({ ...editState, logoUrl: e.target.value })}
-                            placeholder="https://..."
-                          />
-                          <Button type="button" variant="outline" onClick={searchImages} disabled={wikiLoading}>
-                            <Search size={14} /> {wikiLoading ? "Cerca..." : "Cerca su Wikipedia"}
-                          </Button>
-                        </div>
-                      </div>
+                      <Button type="button" variant="outline" onClick={searchImages} disabled={wikiLoading}>
+                        <Search size={14} /> {wikiLoading ? "Ricerca in corso..." : "Cerca immagine su Wikipedia"}
+                      </Button>
 
                       {wikiResults.length > 0 && (
                         <div>
