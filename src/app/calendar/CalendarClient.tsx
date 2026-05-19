@@ -44,7 +44,6 @@ export default function CalendarClient({ initialProductions }: { initialProducti
 
   const todayDay = today.getFullYear() === year && today.getMonth() === month ? today.getDate() : null;
 
-  // For each production, compute which days (in this month view) it spans
   const productionsWithColor = productions.map((p, i) => ({
     ...p,
     color: PROD_COLORS[i % PROD_COLORS.length],
@@ -52,23 +51,44 @@ export default function CalendarClient({ initialProductions }: { initialProducti
     endStr: p.endDate ? p.endDate.slice(0, 10) : null,
   }));
 
-  // For a given day number, get all productions active on that day and their position info
-  function getProductionsForDay(day: number) {
-    const cellStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthEnd = `${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
+  function getWeekProductions(week: (number | null)[]) {
     return productionsWithColor
       .filter((p) => {
         if (!p.startStr) return false;
         const end = p.endStr ?? p.startStr;
-        return cellStr >= p.startStr && cellStr <= end;
+        return week.some((day) => {
+          if (!day) return false;
+          const cellStr = `${monthStr}-${String(day).padStart(2, "0")}`;
+          return cellStr >= p.startStr! && cellStr <= end;
+        });
       })
       .map((p) => {
         const end = p.endStr ?? p.startStr!;
-        const isStart = cellStr === p.startStr || (p.startStr! < `${year}-${String(month + 1).padStart(2, "0")}-01` && day === 1);
-        const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-        const isEnd = cellStr === end || end > monthEnd;
-        const showLabel = cellStr === p.startStr || day === 1;
-        return { ...p, isStart, isEnd, showLabel };
-      });
+        let colStart = -1;
+        let colSpan = 0;
+        week.forEach((day, dayIdx) => {
+          if (!day) return;
+          const cellStr = `${monthStr}-${String(day).padStart(2, "0")}`;
+          if (cellStr >= p.startStr! && cellStr <= end) {
+            if (colStart === -1) colStart = dayIdx + 1;
+            colSpan++;
+          }
+        });
+        if (colStart === -1) return null;
+        const firstActiveDay = week[colStart - 1]!;
+        const firstActiveCellStr = `${monthStr}-${String(firstActiveDay).padStart(2, "0")}`;
+        const isStart = p.startStr === firstActiveCellStr;
+        const isEnd = end <= monthEnd;
+        const showLabel = isStart || firstActiveDay === 1;
+        return { ...p, colStart, colSpan, isStart, isEnd, showLabel };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
   }
 
   return (
@@ -90,48 +110,57 @@ export default function CalendarClient({ initialProductions }: { initialProducti
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-7">
-          {cells.map((day, i) => {
-            const isToday = day === todayDay;
-            const isLastRow = i >= cells.length - 7;
-            const dayProds = day ? getProductionsForDay(day) : [];
-            return (
-              <div
-                key={i}
-                className={`min-h-24 p-1.5 border-b border-r border-border/60 ${i % 7 === 6 ? "border-r-0" : ""} ${isLastRow ? "border-b-0" : ""} ${!day ? "bg-muted/20" : ""}`}
-              >
-                {day && (
-                  <>
-                    <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full mb-1 ${isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-                      {day}
-                    </span>
-                    <div className="space-y-0.5">
-                      {dayProds.map((p) => (
-                        <Link key={p.id} href={`/productions/${p.id}`}>
-                          <div
-                            className={`h-5 flex items-center text-xs font-medium transition-colors cursor-pointer
-                              ${p.color.bg} ${p.color.text}
-                              ${p.isStart ? "rounded-l-sm pl-1.5" : "-ml-1.5 pl-0"}
-                              ${p.isEnd ? "rounded-r-sm pr-1" : "-mr-1.5 pr-0"}
-                            `}
-                          >
-                            {p.showLabel && (
-                              <span className="truncate leading-none">
-                                {p.title}
-                                <span className="opacity-60 font-normal"> · {p.theatre.name}</span>
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      ))}
+        {/* Weeks */}
+        {weeks.map((week, weekIdx) => {
+          const isLastWeek = weekIdx === weeks.length - 1;
+          const weekProds = getWeekProductions(week);
+
+          return (
+            <div key={weekIdx} className={isLastWeek ? "" : "border-b border-border/60"}>
+              {/* Day number row */}
+              <div className="grid grid-cols-7">
+                {week.map((day, dayIdx) => {
+                  const isToday = day === todayDay;
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`pt-1.5 px-1.5 border-r border-border/60 ${dayIdx === 6 ? "border-r-0" : ""} ${!day ? "bg-muted/20" : ""}`}
+                    >
+                      {day && (
+                        <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+                          {day}
+                        </span>
+                      )}
                     </div>
-                  </>
-                )}
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Events — each production is a single element spanning its columns */}
+              <div className={`grid grid-cols-7 ${weekProds.length > 0 ? "pt-1 pb-2 gap-y-0.5" : "pb-8"}`}>
+                {weekProds.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/productions/${p.id}`}
+                    style={{ gridColumn: `${p.colStart} / span ${p.colSpan}` }}
+                    className={`h-5 flex items-center text-xs font-medium transition-colors cursor-pointer overflow-hidden
+                      ${p.color.bg} ${p.color.text}
+                      ${p.isStart ? "rounded-l-sm pl-1.5" : "pl-1.5"}
+                      ${p.isEnd ? "rounded-r-sm pr-1" : "pr-1"}
+                    `}
+                  >
+                    {p.showLabel && (
+                      <span className="truncate leading-none">
+                        {p.title}
+                        <span className="opacity-60 font-normal"> · {p.theatre.name}</span>
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </Card>
 
       {/* Legend */}
