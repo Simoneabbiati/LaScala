@@ -8,7 +8,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const location = await prisma.location.create({
     data: { name: body.name, theatreId: id },
   });
-  revalidateTag("theatres");
+  revalidateTag("theatres", {});
   return NextResponse.json(location, { status: 201 });
 }
 
@@ -16,6 +16,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id: theatreId } = await params;
   const { locationId } = await req.json();
   await prisma.location.delete({ where: { id: locationId, theatreId } });
-  revalidateTag("theatres");
+  revalidateTag("theatres", {});
   return NextResponse.json({ ok: true });
 }
