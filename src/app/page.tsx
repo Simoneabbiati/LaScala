@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Building2, CalendarDays, CheckCircle2, Clock, Plus, Timer } from "lucide-react";
+import ProductionCard from "@/components/ProductionCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -83,13 +83,13 @@ export default async function Dashboard() {
 
       <div className="grid grid-cols-4 gap-4">
         {stats.map((s) => (
-          <Card key={s.label} className={s.highlight ? "border-amber-300 bg-amber-50/40" : ""}>
+          <Card key={s.label} className={s.highlight ? "border-warning-border bg-warning/40" : ""}>
             <CardHeader className="flex flex-row items-center justify-between pb-1">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.label}</CardTitle>
-              <s.icon size={15} className={s.highlight ? "text-amber-500" : "text-muted-foreground"} />
+              <s.icon size={15} className={s.highlight ? "text-warning-foreground" : "text-muted-foreground"} />
             </CardHeader>
             <CardContent>
-              <p className={`text-3xl font-bold mb-1 ${s.highlight ? "text-amber-600" : ""}`}>{s.value}</p>
+              <p className={`text-3xl font-bold mb-1 ${s.highlight ? "text-warning-foreground" : ""}`}>{s.value}</p>
               <p className="text-xs text-muted-foreground truncate">{s.sub}</p>
             </CardContent>
           </Card>
@@ -113,39 +113,20 @@ export default async function Dashboard() {
           </Card>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {recent.map((p) => {
-              const lastOdg = p.odgs[0];
-              const isActive = p.startDate && p.endDate
-                && new Date(p.startDate) <= today && new Date(p.endDate) >= today;
-              const isFuture = p.startDate && new Date(p.startDate) > today;
-              return (
-                <Card key={p.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="pt-4">
-                    <Link href={`/productions/${p.id}`} className="block group">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold group-hover:underline">{p.title}</h3>
-                          {p.composer && <p className="text-sm text-muted-foreground">{p.composer}</p>}
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant="secondary" className="text-xs">{p.theatre.name}</Badge>
-                          {isActive && <Badge className="text-xs bg-amber-100 text-amber-700 border-0">In scena</Badge>}
-                          {isFuture && <Badge className="text-xs bg-blue-100 text-blue-700 border-0">In programma</Badge>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <CalendarDays size={11} />
-                        {p.startDate
-                          ? `${new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}${p.endDate ? ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}` : ""}`
-                          : lastOdg
-                            ? `Ultimo ODG: ${new Date(lastOdg.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}`
-                            : "Date non impostate"}
-                      </div>
-                    </Link>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {recent.map((p) => (
+              <ProductionCard
+                key={p.id}
+                id={p.id}
+                title={p.title}
+                composer={p.composer}
+                theatreName={p.theatre.name}
+                startDate={p.startDate}
+                endDate={p.endDate}
+                lastOdgDate={p.odgs[0]?.date}
+                isActive={!!(p.startDate && p.endDate && new Date(p.startDate) <= today && new Date(p.endDate) >= today)}
+                isFuture={!!(p.startDate && new Date(p.startDate) > today)}
+              />
+            ))}
           </div>
         )}
       </div>

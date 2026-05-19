@@ -12,17 +12,21 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { revalidateTag } = await import("next/cache");
   const { id } = await params;
   const body = await req.json();
   const theatre = await prisma.theatre.update({
     where: { id },
     data: { name: body.name, city: body.city, logoUrl: body.logoUrl },
   });
+  revalidateTag("theatres");
   return NextResponse.json(theatre);
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { revalidateTag } = await import("next/cache");
   const { id } = await params;
   await prisma.theatre.delete({ where: { id } });
+  revalidateTag("theatres");
   return NextResponse.json({ ok: true });
 }

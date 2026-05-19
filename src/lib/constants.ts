@@ -40,3 +40,7 @@ export const DEPT_LABEL: Record<string, string> = Object.fromEntries(
 export const DEPT_COLOR: Record<string, string> = Object.fromEntries(
   DEPARTMENTS.map((d) => [d.value, d.color])
 );
+
+export const DEPT_BG: Record<string, string> = Object.fromEntries(
+  DEPARTMENTS.map((d) => [d.value, `${d.color}44`])
+);

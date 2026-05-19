@@ -2,7 +2,8 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
-import { ACTIVITIES, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
+import { FormField } from "@/components/ui/form-field";
+import { ACTIVITIES, DEPT_BG, DEPT_LABEL } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ const emptySession = () => ({ startTime: "", endTime: "", activity: "", location
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "" });
 
 type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
+type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
 
@@ -36,6 +38,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editSession, setEditSession] = useState<SessionEdit | null>(null);
+  const [editEntry, setEditEntry] = useState<EntryEdit | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
 
   const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then(setOdg);
@@ -49,7 +52,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     load();
   };
 
-  const addSession = async (e: React.FormEvent) => {
+  const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetch(`/api/odg/${odgId}/sessions`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -60,7 +63,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     load();
   };
 
-  const saveSession = async (e: React.FormEvent) => {
+  const saveSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editSession) return;
     await fetch(`/api/odg/${odgId}/sessions/${editSession.id}`, {
@@ -76,7 +79,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     onConfirm: async () => { await fetch(`/api/odg/${odgId}/sessions/${id}`, { method: "DELETE" }); setConfirm(defaultConfirm); load(); },
   });
 
-  const addEntry = async (e: React.FormEvent) => {
+  const addEntry = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetch(`/api/odg/${odgId}/entries`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -84,6 +87,17 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     });
     setEntryForm(emptyEntry());
     setShowEntryForm(false);
+    load();
+  };
+
+  const saveEntry = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editEntry) return;
+    await fetch(`/api/odg/${odgId}/entries/${editEntry.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editEntry),
+    });
+    setEditEntry(null);
     load();
   };
 
@@ -139,16 +153,16 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {/* Status toggle */}
-            <div className="flex rounded-md border overflow-hidden text-sm shadow-sm">
+            <div className="flex rounded-md border overflow-hidden text-sm">
               <button
                 onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
-                className={`px-4 py-1.5 font-medium transition-colors ${odg.status === "BOZZA" ? "bg-amber-50 text-amber-700 border-r border-amber-200" : "text-muted-foreground hover:bg-muted/50 border-r border-border"}`}
+                className={`px-4 py-1.5 font-medium transition-colors border-r ${odg.status === "BOZZA" ? "bg-warning text-warning-foreground border-warning-border" : "text-muted-foreground hover:bg-muted/50 border-border"}`}
               >
                 In lavorazione
               </button>
               <button
                 onClick={() => setStatus(odg.status === "DEFINITIVO" ? null : "DEFINITIVO")}
-                className={`flex items-center gap-1.5 px-4 py-1.5 font-medium transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-50 text-green-700" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 font-medium transition-colors ${odg.status === "DEFINITIVO" ? "bg-success text-success-foreground" : "text-muted-foreground hover:bg-muted/50"}`}
               >
                 {odg.status === "DEFINITIVO" && <Check size={13} />} Definitivo
               </button>
@@ -184,66 +198,89 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessun blocco orario ancora.</p>
           )}
 
-          {odg.sessions.map((s) => {
-            if (editSession?.id === s.id) {
-              return (
-                <form key={s.id} onSubmit={saveSession} className="flex items-center gap-2 bg-muted/40 rounded-lg px-2 py-1.5">
-                  <Input type="time" value={editSession.startTime} onChange={(e) => setEditSession({ ...editSession, startTime: e.target.value })} className="h-7 w-24 text-sm" />
-                  <Input type="time" value={editSession.endTime} onChange={(e) => setEditSession({ ...editSession, endTime: e.target.value })} className="h-7 w-24 text-sm" />
-                  <select value={editSession.activity} onChange={(e) => setEditSession({ ...editSession, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
-                    {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                  <select value={editSession.locationId} onChange={(e) => setEditSession({ ...editSession, locationId: e.target.value })} className="w-36 border border-input rounded px-2 py-1 text-sm bg-background">
-                    <option value="">—</option>
-                    {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
-                  <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-green-600"><Check size={13} /></Button>
-                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditSession(null)}><X size={13} /></Button>
-                </form>
-              );
+          {(() => {
+            type SessionGroup = { locationId: string | null; locationName: string | null; sessions: OdgSession[] };
+            const groups: SessionGroup[] = [];
+            const groupIndex = new Map<string | null, number>();
+            for (const s of odg.sessions) {
+              const key = s.location?.id ?? null;
+              if (!groupIndex.has(key)) {
+                groupIndex.set(key, groups.length);
+                groups.push({ locationId: key, locationName: s.location?.name ?? null, sessions: [] });
+              }
+              groups[groupIndex.get(key)!].sessions.push(s);
             }
-            return (
-              <div key={s.id} className="group flex items-center gap-3 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
-                <span className="font-mono text-muted-foreground w-28 shrink-0">{s.startTime} – {s.endTime}</span>
-                <span className="font-medium">{s.activity}</span>
-                {s.location && <span className="text-muted-foreground text-xs">({s.location.name})</span>}
-                <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
-                    <Pencil size={11} />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteSession(s.id)}>
-                    <Trash2 size={11} />
-                  </Button>
-                </div>
+            const showHeaders = groups.length > 1 || (groups.length === 1 && groups[0].locationId !== null);
+
+            return groups.map((group) => (
+              <div key={group.locationId ?? "__none__"} className="space-y-0.5">
+                {showHeaders && (
+                  <div className="flex items-center gap-2 px-2 pt-2 pb-0.5">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                      {group.locationName ?? "Nessun luogo"}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                )}
+                {group.sessions.map((s) => {
+                  if (editSession?.id === s.id) {
+                    return (
+                      <form key={s.id} onSubmit={saveSession} className="flex items-center gap-2 bg-muted/40 rounded-lg px-2 py-1.5">
+                        <Input type="time" value={editSession.startTime} onChange={(e) => setEditSession({ ...editSession, startTime: e.target.value })} className="h-7 w-24 text-sm" />
+                        <Input type="time" value={editSession.endTime} onChange={(e) => setEditSession({ ...editSession, endTime: e.target.value })} className="h-7 w-24 text-sm" />
+                        <select value={editSession.activity} onChange={(e) => setEditSession({ ...editSession, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
+                          {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                        <select value={editSession.locationId} onChange={(e) => setEditSession({ ...editSession, locationId: e.target.value })} className="w-36 border border-input rounded px-2 py-1 text-sm bg-background">
+                          <option value="">—</option>
+                          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                        <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
+                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditSession(null)}><X size={13} /></Button>
+                      </form>
+                    );
+                  }
+                  return (
+                    <div key={s.id} className="group flex items-center gap-3 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                      <span className="font-mono text-muted-foreground w-28 shrink-0">{s.startTime} – {s.endTime}</span>
+                      <span className="font-medium">{s.activity}</span>
+                      {!showHeaders && s.location && <span className="text-muted-foreground text-xs">({s.location.name})</span>}
+                      <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
+                          <Pencil size={11} />
+                        </Button>
+                        <Button size="icon" variant="ghost-destructive" className="h-6 w-6" onClick={() => deleteSession(s.id)}>
+                          <Trash2 size={11} />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            ));
+          })()}
 
           {showSessionForm && (
             <form onSubmit={addSession} className="px-1 pt-2 pb-1 space-y-2 mt-2">
               <div className="grid grid-cols-5 gap-2">
-                <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Tipo di attività</label>
+                <FormField label="Tipo di attività" className="col-span-2">
                   <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                     <option value="">Seleziona attività…</option>
                     {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
                   </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Ora inizio</label>
+                </FormField>
+                <FormField label="Ora inizio">
                   <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Ora fine</label>
+                </FormField>
+                <FormField label="Ora fine">
                   <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Sala / Luogo</label>
+                </FormField>
+                <FormField label="Sala / Luogo">
                   <select value={sessionForm.locationId} onChange={(e) => setSessionForm({ ...sessionForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                     <option value="">Nessuna sede</option>
                     {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
-                </div>
+                </FormField>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">Aggiungi</Button>
@@ -272,8 +309,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         {showEntryForm && (
           <form onSubmit={addEntry} className="space-y-3 pb-2">
             <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Attività *</label>
+              <FormField label="Attività *">
                 {uniqueSessionActivities.length > 0 ? (
                   <select required value={entryForm.activity} onChange={(e) => handleEntryActivity(e.target.value)} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                     <option value="">Seleziona attività...</option>
@@ -282,17 +318,14 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 ) : (
                   <p className="text-xs text-amber-600 pt-1.5">Aggiungi prima un blocco nel programma del giorno.</p>
                 )}
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Orario inizio *</label>
+              </FormField>
+              <FormField label="Orario inizio *">
                 <Input required type="time" value={entryForm.startTime} onChange={(e) => setEntryForm({ ...entryForm, startTime: e.target.value })} className="h-8 text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Orario fine *</label>
+              </FormField>
+              <FormField label="Orario fine *">
                 <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Persona *</label>
+              </FormField>
+              <FormField label="Persona *">
                 <select required value={entryForm.memberId} onChange={(e) => setEntryForm({ ...entryForm, memberId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                   <option value="">Seleziona persona...</option>
                   {DEPT_ORDER.map((dept) => {
@@ -300,23 +333,21 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                     if (!members.length) return null;
                     return (
                       <optgroup key={dept} label={DEPT_LABEL[dept]}>
-                        {members.map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}</option>)}
+                        {members.filter((m) => m.person).map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}</option>)}
                       </optgroup>
                     );
                   })}
                 </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Luogo</label>
+              </FormField>
+              <FormField label="Luogo">
                 <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                   <option value="">—</option>
                   {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Note</label>
+              </FormField>
+              <FormField label="Note">
                 <Input value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} placeholder="Note opzionali" className="h-8 text-sm" />
-              </div>
+              </FormField>
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm">Aggiungi</Button>
@@ -335,7 +366,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             if (!entries?.length) return null;
             return (
               <Card key={dept} className="overflow-hidden">
-                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: DEPT_COLOR[dept] + "44" }}>
+                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: DEPT_BG[dept] }}>
                   {DEPT_LABEL[dept]}
                 </div>
                 <Table>
@@ -350,27 +381,55 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {entries.map((entry) => (
-                      <TableRow key={entry.id} className="group">
-                        <TableCell>
-                          <div className="font-medium text-sm">{entry.member.person.name}</div>
-                          <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
-                        <TableCell className="text-sm">{entry.activity}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="icon" variant="ghost"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                            onClick={() => deleteEntry(entry.id, entry.member.person.name)}
-                          >
-                            <Trash2 size={12} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {entries.map((entry) => {
+                      if (editEntry?.id === entry.id) {
+                        return (
+                          <TableRow key={entry.id}>
+                            <TableCell colSpan={6}>
+                              <form onSubmit={saveEntry} className="flex items-center gap-2">
+                                <span className="text-sm font-medium shrink-0">{entry.member.person.name}</span>
+                                <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
+                                <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
+                                <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
+                                  {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
+                                </select>
+                                <select value={editEntry.locationId} onChange={(e) => setEditEntry({ ...editEntry, locationId: e.target.value })} className="w-32 border border-input rounded px-2 py-1 text-sm bg-background">
+                                  <option value="">—</option>
+                                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                </select>
+                                <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />
+                                <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
+                              </form>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      return (
+                        <TableRow key={entry.id} className="group">
+                          <TableCell>
+                            <div className="font-medium text-sm">{entry.member.person.name}</div>
+                            <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
+                          <TableCell className="text-sm">{entry.activity}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
+                                onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "" })}>
+                                <Pencil size={12} />
+                              </Button>
+                              <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
+                                onClick={() => deleteEntry(entry.id, entry.member.person.name)}>
+                                <Trash2 size={12} />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </Card>

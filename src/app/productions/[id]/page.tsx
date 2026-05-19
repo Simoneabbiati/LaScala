@@ -3,13 +3,13 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users, X, Check } from "lucide-react";
-import { DEPARTMENTS, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
+import { DEPARTMENTS, DEPT_BG, DEPT_LABEL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { FormField } from "@/components/ui/form-field";
 
 type Person = { id: string; name: string; email?: string; phone?: string };
 type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person | null };
@@ -58,7 +58,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     setShowProdEdit(true);
   };
 
-  const saveProdEdit = async (e: React.FormEvent) => {
+  const saveProdEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetch(`/api/productions/${id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     load();
   };
 
-  const addMember = async (e: React.FormEvent) => {
+  const addMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetch(`/api/productions/${id}/members`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -84,8 +84,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     roleTitle: m.roleTitle, characterName: m.characterName ?? "", email: m.person?.email ?? "", phone: m.person?.phone ?? "",
   });
 
-  const saveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveEdit = async () => {
     if (!editState) return;
     await fetch(`/api/productions/${id}/members/${editState.memberId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -146,30 +145,25 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
         {showProdEdit ? (
           <form onSubmit={saveProdEdit} className="space-y-3 border rounded-xl p-4 bg-muted/20">
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Titolo *</label>
+              <FormField label="Titolo *">
                 <Input required value={prodEditForm.title} onChange={(e) => setProdEditForm({ ...prodEditForm, title: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Compositore</label>
+              </FormField>
+              <FormField label="Compositore">
                 <Input value={prodEditForm.composer} onChange={(e) => setProdEditForm({ ...prodEditForm, composer: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Teatro *</label>
+              </FormField>
+              <FormField label="Teatro *">
                 <select required value={prodEditForm.theatreId} onChange={(e) => setProdEditForm({ ...prodEditForm, theatreId: e.target.value })}>
                   <option value="">Seleziona teatro...</option>
                   {theatreOptions.map((t) => <option key={t.id} value={t.id}>{t.name} — {t.city}</option>)}
                 </select>
-              </div>
+              </FormField>
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Inizio</label>
+                <FormField label="Inizio">
                   <Input type="date" value={prodEditForm.startDate} onChange={(e) => setProdEditForm({ ...prodEditForm, startDate: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Fine</label>
+                </FormField>
+                <FormField label="Fine">
                   <Input type="date" value={prodEditForm.endDate} onChange={(e) => setProdEditForm({ ...prodEditForm, endDate: e.target.value })} />
-                </div>
+                </FormField>
               </div>
             </div>
             <div className="flex gap-2">
@@ -230,10 +224,10 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
 
                   const statusDot = !odg ? null
                     : odg.status === "DEFINITIVO"
-                      ? <span className="flex items-center gap-1 text-xs font-medium text-green-600"><Check size={13} className="shrink-0" /> Definitivo</span>
+                      ? <span className="flex items-center gap-1 text-xs font-medium text-success-foreground"><Check size={13} className="shrink-0" /> Definitivo</span>
                       : odg.status === "BOZZA"
-                        ? <span className="text-xs font-medium text-amber-500">In lavorazione</span>
-                        : <span className="text-xs font-medium text-amber-500">Iniziato</span>;
+                        ? <span className="text-xs font-medium text-warning-foreground">In lavorazione</span>
+                        : <span className="text-xs font-medium text-warning-foreground">Iniziato</span>;
 
                   if (odg) {
                     return (
@@ -243,8 +237,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                           {statusDot}
                         </Link>
                         <Button
-                          size="icon" variant="ghost"
-                          className="mr-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          size="icon" variant="ghost-destructive"
+                          className="mr-2 opacity-0 group-hover:opacity-100"
                           onClick={() => deleteOdg(odg)}
                         >
                           <Trash2 size={14} />
@@ -291,28 +285,28 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               <CardContent>
                 <form onSubmit={addMember} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Nome *</label>
+                    <FormField label="Nome *">
                       <Input required size={1} value={memberForm.personName} onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })} placeholder="Nome e Cognome" className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Dipartimento *</label>
+                    </FormField>
+                    <FormField label="Dipartimento *">
                       <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                         {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                       </select>
-                    </div>
-                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Ruolo *</label>
+                    </FormField>
+                    <FormField label="Ruolo *">
                       <Input required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} placeholder="Direttore d'orchestra" className="h-8 text-sm" />
-                    </div>
+                    </FormField>
                     {memberForm.department === "CAST" && (
-                      <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Personaggio</label>
+                      <FormField label="Personaggio">
                         <Input value={memberForm.characterName} onChange={(e) => setMemberForm({ ...memberForm, characterName: e.target.value })} placeholder="Gulliver" className="h-8 text-sm" />
-                      </div>
+                      </FormField>
                     )}
-                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Email</label>
+                    <FormField label="Email">
                       <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Telefono</label>
+                    </FormField>
+                    <FormField label="Telefono">
                       <Input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} className="h-8 text-sm" />
-                    </div>
+                    </FormField>
                   </div>
                   <div className="flex gap-2">
                     <Button type="submit" size="sm">Aggiungi</Button>
@@ -347,7 +341,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                           <Input value={editState.phone} onChange={(e) => setEditState({ ...editState, phone: e.target.value })} placeholder="Telefono" className="text-sm" />
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" className="text-green-600" onClick={saveEdit}><Check size={13} /> Salva</Button>
+                          <Button size="sm" variant="ghost" className="text-success-foreground" onClick={saveEdit}><Check size={13} /> Salva</Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditState(null)}><X size={13} /> Annulla</Button>
                         </div>
                       </div>
@@ -370,7 +364,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                             {m.person?.name ?? "— da assegnare"}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
+                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_BG[m.department] }}>
                               {DEPT_LABEL[m.department]}
                             </Badge>
                             <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
@@ -381,7 +375,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
                           <Button size="icon-sm" variant="ghost" onClick={() => startEdit(m)}><Pencil size={12} /></Button>
-                          <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => removeMember(m)}><Trash2 size={12} /></Button>
+                          <Button size="icon-sm" variant="ghost-destructive" onClick={() => removeMember(m)}><Trash2 size={12} /></Button>
                         </div>
                       </div>
                       {isExpanded && hasDetails && (

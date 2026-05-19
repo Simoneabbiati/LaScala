@@ -8,6 +8,7 @@ export async function GET() {
       _count: { select: { members: true, odgs: true } },
     },
     orderBy: { startDate: "desc" },
+    take: 200,
   });
   return NextResponse.json(productions);
 }

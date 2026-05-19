@@ -1,39 +1,16 @@
-"use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { BookOpen, CalendarDays, Plus, Trash2, Users } from "lucide-react";
+import { BookOpen, CalendarDays, Plus, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import { getProductions } from "@/lib/queries";
+import DeleteProductionButton from "@/components/DeleteProductionButton";
 
-type Theatre = { id: string; name: string; city: string };
-type Production = {
-  id: string; title: string; composer?: string;
-  startDate?: string; endDate?: string;
-  theatre: Theatre;
-  _count: { members: number; odgs: number };
-};
+export const dynamic = "force-dynamic";
 
-type ConfirmState = { open: boolean; id: string; title: string };
-
-export default function ProductionsPage() {
-  const router = useRouter();
-  const [productions, setProductions] = useState<Production[]>([]);
-  const [confirm, setConfirm] = useState<ConfirmState>({ open: false, id: "", title: "" });
-
-  useEffect(() => {
-    fetch("/api/productions").then((r) => r.json()).then(setProductions);
-  }, []);
-
-  async function handleDelete() {
-    await fetch(`/api/productions/${confirm.id}`, { method: "DELETE" });
-    setProductions((prev) => prev.filter((p) => p.id !== confirm.id));
-    setConfirm({ open: false, id: "", title: "" });
-  }
+export default async function ProductionsPage() {
+  const productions = await getProductions();
 
   return (
     <div className="space-y-6">
@@ -82,30 +59,13 @@ export default function ProductionsPage() {
                       )}
                     </div>
                   </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-2 shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => setConfirm({ open: true, id: p.id, title: p.title })}
-                  >
-                    <Trash2 size={15} />
-                  </Button>
+                  <DeleteProductionButton id={p.id} title={p.title} />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-
-      <ConfirmDialog
-        open={confirm.open}
-        title="Elimina produzione"
-        description={`Vuoi eliminare "${confirm.title}"? Questa azione è irreversibile e cancellerà tutti gli ODG associati.`}
-        confirmLabel="Elimina"
-        destructive
-        onConfirm={handleDelete}
-        onCancel={() => setConfirm({ open: false, id: "", title: "" })}
-      />
     </div>
   );
 }
