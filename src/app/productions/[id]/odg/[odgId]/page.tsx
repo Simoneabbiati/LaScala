@@ -221,18 +221,30 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           })}
 
           {showSessionForm && (
-            <form onSubmit={addSession} className="border border-border rounded-lg p-3 space-y-2 bg-muted/20 mt-2">
+            <form onSubmit={addSession} className="px-1 pt-2 pb-1 space-y-2 mt-2">
               <div className="grid grid-cols-5 gap-2">
-                <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
-                <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
-                <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="col-span-2 border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                  <option value="">Attività...</option>
-                  {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <select value={sessionForm.locationId} onChange={(e) => setSessionForm({ ...sessionForm, locationId: e.target.value })} className="border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                  <option value="">Luogo...</option>
-                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Ora inizio</label>
+                  <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Ora fine</label>
+                  <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Tipo di attività</label>
+                  <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                    <option value="">Seleziona attività…</option>
+                    {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Sala / Luogo</label>
+                  <select value={sessionForm.locationId} onChange={(e) => setSessionForm({ ...sessionForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                    <option value="">Nessuna sede</option>
+                    {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">Aggiungi</Button>
