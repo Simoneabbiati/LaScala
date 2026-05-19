@@ -3,7 +3,7 @@ import React, { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react";
-import { DEPT_BG, DEPT_LABEL, DEPT_ORDER, TECHNICAL_DEPT_VALUES, EXTRAS_TYPES } from "@/lib/constants";
+import { DEPT_BG, DEPT_LABEL, DEPT_ORDER, TECHNICAL_DEPT_VALUES, MAESTRI_COLLABORATORI_VALUES, EXTRAS_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -322,7 +322,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                         <option value="TEAM_CREATIVO">Team Creativo</option>
                         <optgroup label="Musica">
                           <option value="ORCHESTRA">Orchestra</option>
-                          <option value="MAESTRI_COLLABORATORI">Maestri Collaboratori</option>
+                        </optgroup>
+                        <optgroup label="Maestri Collaboratori">
+                          {MAESTRI_COLLABORATORI_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
                         </optgroup>
                         <optgroup label="Reparti Tecnici">
                           {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
@@ -422,7 +424,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                   <option value="TEAM_CREATIVO">Team Creativo</option>
                                   <optgroup label="Musica">
                                     <option value="ORCHESTRA">Orchestra</option>
-                                    <option value="MAESTRI_COLLABORATORI">Maestri Collaboratori</option>
+                                  </optgroup>
+                                  <optgroup label="Maestri Collaboratori">
+                                    {MAESTRI_COLLABORATORI_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
                                   </optgroup>
                                   <optgroup label="Reparti Tecnici">
                                     {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}

@@ -8,7 +8,10 @@ export const DEPARTMENTS = [
   { value: "CAST", label: "Solisti", color: "#e8a598" },
   { value: "CAST_EXTRAS", label: "Extras", color: "#e8a598" },
   { value: "ORCHESTRA", label: "Orchestra", color: "#a8c4d4" },
-  { value: "MAESTRI_COLLABORATORI", label: "Maestri Collaboratori", color: "#a8c4d4" },
+  { value: "MAESTRO_DI_SALA", label: "Maestro di Sala", color: "#a8c4d4" },
+  { value: "MAESTRI_DI_PALCOSCENICO", label: "Maestri di Palcoscenico", color: "#a8c4d4" },
+  { value: "MAESTRO_ALLE_LUCI", label: "Maestro alle Luci", color: "#a8c4d4" },
+  { value: "MAESTRO_AI_SOVRATITOLI", label: "Maestro ai Sovratitoli", color: "#a8c4d4" },
   { value: "MACCHINISTI", label: "Reparto Macchinisti", color: "#a8c8a0" },
   { value: "ELETTRICISTI", label: "Reparto Elettricisti", color: "#a8c8a0" },
   { value: "CONSOLLISTA", label: "Consollista", color: "#a8c8a0" },
@@ -21,13 +24,18 @@ export const DEPARTMENTS = [
 
 export type Department = (typeof DEPARTMENTS)[number]["value"];
 
+export const MAESTRI_COLLABORATORI_VALUES = [
+  "MAESTRO_DI_SALA", "MAESTRI_DI_PALCOSCENICO", "MAESTRO_ALLE_LUCI", "MAESTRO_AI_SOVRATITOLI",
+] as const;
+
 export const TECHNICAL_DEPT_VALUES = [
   "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI",
   "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
 ] as const;
 
 export const DEPT_ORDER = [
-  "TEAM_CREATIVO", "CAST", "CAST_EXTRAS", "ORCHESTRA", "MAESTRI_COLLABORATORI",
+  "TEAM_CREATIVO", "CAST", "CAST_EXTRAS", "ORCHESTRA",
+  "MAESTRO_DI_SALA", "MAESTRI_DI_PALCOSCENICO", "MAESTRO_ALLE_LUCI", "MAESTRO_AI_SOVRATITOLI",
   "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI",
   "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
   "AREA_TECNICA",
