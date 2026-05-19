@@ -20,7 +20,7 @@ type Odg = { id: string; date: string; status?: string | null };
 type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[]; stageManagerName?: string; stageManagerEmail?: string; stageManagerPhone?: string; asstStageManagerName?: string; asstStageManagerEmail?: string; asstStageManagerPhone?: string };
 
 
-type Dept = { id: string; value: string; label: string; color: string; group: string | null; sortOrder: number; isCustom: boolean };
+type Dept = { id: string; value: string; label: string; color: string; group: string | null; sortOrder: number; isCustom: boolean; linkedToDept: string | null };
 type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 
@@ -46,9 +46,15 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   useEffect(() => { load(); }, [id]);
   useEffect(() => { fetch("/api/departments").then((r) => r.json()).then(setDepartments); }, []);
 
-  const deptOrder = departments.map((d) => d.value);
+  // Linked depts (e.g. Maestro del Coro) are shown inside their parent section, not as standalone rows
+  const deptOrder = departments.filter((d) => !d.linkedToDept).map((d) => d.value);
   const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
   const deptBg: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, `${d.color}44`]));
+  // Map: parent dept value → linked Dept objects
+  const linkedByParent = departments.reduce<Record<string, Dept[]>>((acc, d) => {
+    if (d.linkedToDept) { (acc[d.linkedToDept] ??= []).push(d); }
+    return acc;
+  }, {});
   const deptSegments = departments.reduce<{ group: string | null; items: Dept[] }[]>((acc, dept) => {
     const last = acc[acc.length - 1];
     if (last && last.group === dept.group) { last.items.push(dept); } else { acc.push({ group: dept.group, items: [dept] }); }
@@ -397,19 +403,21 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               )}
               {fullDeptOrder.map((dept) => {
                 const deptMembers = filteredMembersByDept[dept] ?? [];
-                if (deptMembers.length === 0) return null;
+                const linked = linkedByParent[dept] ?? [];
+                const linkedMembers = linked.flatMap((ld) => filteredMembersByDept[ld.value] ?? []);
+                if (deptMembers.length === 0 && linkedMembers.length === 0) return null;
                 const isCollapsed = collapsedDepts.has(dept);
+                const totalCount = deptMembers.length + linkedMembers.length;
 
                 return (
                   <div key={dept}>
-                    {/* Department header — sticky within scroll container */}
                     <button
                       onClick={() => toggleCollapsedDept(dept)}
                       className="sticky top-0 z-10 w-full flex items-center justify-between px-3 py-1.5 bg-muted/60 backdrop-blur-sm border-b text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted/80 transition-colors"
                     >
                       <span>{deptLabel[dept] ?? dept}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-normal normal-case tracking-normal opacity-60">{deptMembers.length}</span>
+                        <span className="font-normal normal-case tracking-normal opacity-60">{totalCount}</span>
                         <ChevronDown size={12} className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                       </div>
                     </button>
@@ -512,6 +520,25 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                   {m.notes && <p className="text-xs text-muted-foreground italic">{m.notes}</p>}
                                 </div>
                               )}
+                            </React.Fragment>
+                          );
+                        })}
+                        {linked.map((ld) => {
+                          const ldMembers = filteredMembersByDept[ld.value] ?? [];
+                          if (ldMembers.length === 0) return null;
+                          return (
+                            <React.Fragment key={ld.value}>
+                              <div className="px-3 py-1 text-xs font-semibold text-muted-foreground bg-muted/30 border-b tracking-wide">
+                                {ld.label}
+                              </div>
+                              {ldMembers.map((m) => (
+                                <div key={m.id} className="flex items-center gap-2 px-3 py-2.5">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{m.person?.name ?? "— da assegnare"}</p>
+                                    <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
+                                  </div>
+                                </div>
+                              ))}
                             </React.Fragment>
                           );
                         })}

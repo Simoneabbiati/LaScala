@@ -5,7 +5,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id: odgId } = await params;
   const body = await req.json();
 
-  const member = await prisma.productionMember.findUnique({ where: { id: body.memberId } });
+  const member = await prisma.productionMember.findUnique({
+    where: { id: body.memberId },
+    include: { production: true },
+  });
   const characterName = body.characterName !== undefined
     ? (body.characterName || null)
     : (member?.characterName ?? null);
@@ -24,5 +27,48 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
     include: { member: { include: { person: true } }, location: true },
   });
+
+  // Auto-create entries for linked departments (e.g. Maestro del Coro when choir entry is added)
+  if (member) {
+    const linkedDepts = await prisma.department.findMany({
+      where: { linkedToDept: member.department },
+    });
+
+    if (linkedDepts.length > 0) {
+      const linkedMembers = await prisma.productionMember.findMany({
+        where: {
+          productionId: member.productionId,
+          department: { in: linkedDepts.map((d) => d.value) },
+        },
+      });
+
+      // Only create if no entry already exists for this maestro on this ODG
+      const existingEntries = await prisma.odgEntry.findMany({
+        where: { odgId, memberId: { in: linkedMembers.map((m) => m.id) } },
+        select: { memberId: true },
+      });
+      const alreadyAdded = new Set(existingEntries.map((e) => e.memberId));
+
+      const currentCount = await prisma.odgEntry.count({ where: { odgId } });
+      const toCreate = linkedMembers.filter((m) => !alreadyAdded.has(m.id));
+
+      if (toCreate.length > 0) {
+        await prisma.odgEntry.createMany({
+          data: toCreate.map((m, i) => ({
+            odgId,
+            memberId: m.id,
+            startTime: body.startTime,
+            endTime: body.endTime,
+            activity: body.activity,
+            locationId: body.locationId || null,
+            notes: body.notes || null,
+            characterName: null,
+            sortOrder: currentCount + i,
+          })),
+        });
+      }
+    }
+  }
+
   return NextResponse.json(entry, { status: 201 });
 }

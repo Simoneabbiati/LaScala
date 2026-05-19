@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "migrate": "node scripts/migrate.js",
     "start": "next start",
     "lint": "eslint"
