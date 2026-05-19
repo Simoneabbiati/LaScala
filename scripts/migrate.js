@@ -51,7 +51,17 @@ for (const folder of folders) {
   console.log(`Applying: ${folder}`);
   const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
   for (const stmt of statements) {
-    await db.execute(stmt);
+    try {
+      await db.execute(stmt);
+    } catch (e) {
+      const msg = String(e.message ?? e);
+      // Skip if object already exists (idempotent re-runs)
+      if (/already exists/i.test(msg) || /duplicate column/i.test(msg)) {
+        console.log(`  skip (already exists): ${stmt.slice(0, 60)}...`);
+      } else {
+        throw e;
+      }
+    }
   }
   await db.execute({
     sql: "INSERT INTO _prisma_migrations (id, checksum, migration_name, finished_at, applied_steps_count) VALUES (?, ?, ?, datetime('now'), ?)",
