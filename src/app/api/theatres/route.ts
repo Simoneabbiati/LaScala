@@ -26,6 +26,6 @@ export async function POST(req: NextRequest) {
   const theatre = await prisma.theatre.create({
     data: { name: body.name, city: body.city, logoUrl: body.logoUrl },
   });
-  revalidateTag("theatres", {});
+  revalidateTag("theatres");
   return NextResponse.json(theatre, { status: 201 });
 }
