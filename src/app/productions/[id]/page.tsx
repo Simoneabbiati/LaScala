@@ -359,7 +359,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                           {m.person?.name ?? "— da assegnare"}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
+                          <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
                             {DEPT_LABEL[m.department]}
                           </Badge>
                           <span className="text-xs text-muted-foreground italic truncate">{m.roleTitle}</span>
