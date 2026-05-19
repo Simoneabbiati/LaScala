@@ -165,7 +165,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4 h-[calc(100dvh-4rem)]">
       <ConfirmDialog
         {...confirm}
         destructive
@@ -314,78 +314,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-6 items-start">
-        {/* ODG column — left */}
-        <div className="space-y-4">
-          <h2 className="text-base font-bold flex items-center gap-2"><CalendarDays size={16} /> Ordini del Giorno</h2>
-
-          {(() => {
-            if (!production.startDate || !production.endDate) {
-              return <p className="text-sm text-muted-foreground">Imposta date di inizio e fine produzione per vedere i giorni.</p>;
-            }
-            const start = new Date(production.startDate);
-            const end = new Date(production.endDate);
-            const days: Date[] = [];
-            const cur = new Date(start);
-            while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-
-            return (
-              <div className="space-y-2">
-                {days.map((day) => {
-                  const dayStr = day.toISOString().slice(0, 10);
-                  const odg = production.odgs.find((o) => o.date.slice(0, 10) === dayStr);
-                  const label = day.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
-
-                  const statusDot = !odg ? null
-                    : odg.status === "DEFINITIVO"
-                      ? <span className="flex items-center gap-1 text-xs font-medium text-success-foreground"><Check size={13} className="shrink-0" /> Definitivo</span>
-                      : odg.status === "BOZZA"
-                        ? <span className="text-xs font-medium text-warning-foreground">In lavorazione</span>
-                        : <span className="text-xs font-medium text-warning-foreground">Iniziato</span>;
-
-                  if (odg) {
-                    return (
-                      <div key={dayStr} className="group flex items-center rounded-lg border bg-card hover:bg-accent/30 transition-colors">
-                        <Link href={`/productions/${id}/odg/${odg.id}`} className="flex-1 px-4 py-3 flex items-center justify-between">
-                          <p className="font-semibold capitalize text-sm">{label}</p>
-                          {statusDot}
-                        </Link>
-                        <Button
-                          size="icon" variant="ghost-destructive"
-                          className="mr-2 opacity-0 group-hover:opacity-100"
-                          onClick={() => deleteOdg(odg)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <button
-                      key={dayStr}
-                      onClick={async () => {
-                        const res = await fetch(`/api/productions/${id}/odg`, {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ date: dayStr }),
-                        });
-                        const newOdg = await res.json();
-                        router.push(`/productions/${id}/odg/${newOdg.id}`);
-                      }}
-                      className="w-full flex items-center justify-between rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border/80 hover:bg-muted/20 transition-colors cursor-pointer"
-                    >
-                      <span className="capitalize font-medium">{label}</span>
-                      <span className="flex items-center gap-1 text-xs"><Plus size={12} /> Crea ODG</span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Roster — right, sticky */}
-        <div className="sticky top-6 space-y-3">
+      <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
+        {/* Roster — LEFT */}
+        <div className="flex flex-col min-h-0 gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold flex items-center gap-2"><Users size={16} /> Roster</h2>
             <Button size="sm" variant="outline" onClick={() => setShowMemberForm(!showMemberForm)}>
@@ -478,8 +409,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
             </Card>
           )}
 
-          <Card className="overflow-hidden">
-            <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
+          <Card className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <div className="overflow-y-auto flex-1 min-h-0">
               {production.members.length === 0 && (
                 <p className="text-center text-sm text-muted-foreground py-8">
                   Nessun membro ancora. Aggiungi le persone che partecipano alla produzione.
@@ -618,6 +549,75 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               })}
             </div>
           </Card>
+        </div>
+
+        {/* ODG — RIGHT */}
+        <div className="flex flex-col gap-4 min-h-0">
+          <h2 className="text-base font-bold flex items-center gap-2 shrink-0"><CalendarDays size={16} /> Ordini del Giorno</h2>
+
+          {(() => {
+            if (!production.startDate || !production.endDate) {
+              return <p className="text-sm text-muted-foreground">Imposta date di inizio e fine produzione per vedere i giorni.</p>;
+            }
+            const start = new Date(production.startDate);
+            const end = new Date(production.endDate);
+            const days: Date[] = [];
+            const cur = new Date(start);
+            while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
+
+            return (
+              <div className="space-y-2 overflow-y-auto">
+                {days.map((day) => {
+                  const dayStr = day.toISOString().slice(0, 10);
+                  const odg = production.odgs.find((o) => o.date.slice(0, 10) === dayStr);
+                  const label = day.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+
+                  const statusDot = !odg ? null
+                    : odg.status === "DEFINITIVO"
+                      ? <span className="flex items-center gap-1 text-xs font-medium text-success-foreground"><Check size={13} className="shrink-0" /> Definitivo</span>
+                      : odg.status === "BOZZA"
+                        ? <span className="text-xs font-medium text-warning-foreground">In lavorazione</span>
+                        : <span className="text-xs font-medium text-warning-foreground">Iniziato</span>;
+
+                  if (odg) {
+                    return (
+                      <div key={dayStr} className="group flex items-center rounded-lg border bg-card hover:bg-accent/30 transition-colors">
+                        <Link href={`/productions/${id}/odg/${odg.id}`} className="flex-1 px-4 py-3 flex items-center justify-between">
+                          <p className="font-semibold capitalize text-sm">{label}</p>
+                          {statusDot}
+                        </Link>
+                        <Button
+                          size="icon" variant="ghost-destructive"
+                          className="mr-2 opacity-0 group-hover:opacity-100"
+                          onClick={() => deleteOdg(odg)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={dayStr}
+                      onClick={async () => {
+                        const res = await fetch(`/api/productions/${id}/odg`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ date: dayStr }),
+                        });
+                        const newOdg = await res.json();
+                        router.push(`/productions/${id}/odg/${newOdg.id}`);
+                      }}
+                      className="w-full flex items-center justify-between rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border/80 hover:bg-muted/20 transition-colors cursor-pointer"
+                    >
+                      <span className="capitalize font-medium">{label}</span>
+                      <span className="flex items-center gap-1 text-xs"><Plus size={12} /> Crea ODG</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
