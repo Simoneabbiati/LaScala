@@ -18,13 +18,19 @@ const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Lugl
 const DAYS_IT = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 
 const PROD_COLORS = [
-  { bg: "bg-blue-100 hover:bg-blue-200",   text: "text-blue-800",   bar: "bg-blue-200",   dot: "bg-blue-500"   },
-  { bg: "bg-purple-100 hover:bg-purple-200", text: "text-purple-800", bar: "bg-purple-200", dot: "bg-purple-500" },
-  { bg: "bg-rose-100 hover:bg-rose-200",   text: "text-rose-800",   bar: "bg-rose-200",   dot: "bg-rose-500"   },
-  { bg: "bg-amber-100 hover:bg-amber-200", text: "text-amber-800",  bar: "bg-amber-200",  dot: "bg-amber-500"  },
-  { bg: "bg-teal-100 hover:bg-teal-200",   text: "text-teal-800",   bar: "bg-teal-200",   dot: "bg-teal-500"   },
-  { bg: "bg-orange-100 hover:bg-orange-200", text: "text-orange-800", bar: "bg-orange-200", dot: "bg-orange-500" },
+  { bg: "bg-blue-100 hover:bg-blue-200",     text: "text-blue-800",    bar: "bg-blue-200",    dot: "bg-blue-500",    chip: "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"    },
+  { bg: "bg-purple-100 hover:bg-purple-200", text: "text-purple-800",  bar: "bg-purple-200",  dot: "bg-purple-500",  chip: "bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100" },
+  { bg: "bg-rose-100 hover:bg-rose-200",     text: "text-rose-800",    bar: "bg-rose-200",    dot: "bg-rose-500",    chip: "bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100"    },
+  { bg: "bg-amber-100 hover:bg-amber-200",   text: "text-amber-800",   bar: "bg-amber-200",   dot: "bg-amber-500",   chip: "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100"  },
+  { bg: "bg-teal-100 hover:bg-teal-200",     text: "text-teal-800",    bar: "bg-teal-200",    dot: "bg-teal-500",    chip: "bg-teal-50 border-teal-200 text-teal-800 hover:bg-teal-100"    },
+  { bg: "bg-orange-100 hover:bg-orange-200", text: "text-orange-800",  bar: "bg-orange-200",  dot: "bg-orange-500",  chip: "bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100" },
+  { bg: "bg-green-100 hover:bg-green-200",   text: "text-green-800",   bar: "bg-green-200",   dot: "bg-green-500",   chip: "bg-green-50 border-green-200 text-green-800 hover:bg-green-100"  },
+  { bg: "bg-cyan-100 hover:bg-cyan-200",     text: "text-cyan-800",    bar: "bg-cyan-200",    dot: "bg-cyan-500",    chip: "bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100"    },
+  { bg: "bg-pink-100 hover:bg-pink-200",     text: "text-pink-800",    bar: "bg-pink-200",    dot: "bg-pink-500",    chip: "bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100"    },
+  { bg: "bg-indigo-100 hover:bg-indigo-200", text: "text-indigo-800",  bar: "bg-indigo-200",  dot: "bg-indigo-500",  chip: "bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100" },
 ];
+
+const MAX_BARS_PER_WEEK = 3;
 
 function getFirstDayOfMonth(year: number, month: number) {
   const day = new Date(year, month, 1).getDay();
@@ -41,6 +47,7 @@ export default function CalendarClient({
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const [hiddenProductions, setHiddenProductions] = useState<Set<string>>(new Set());
 
   const productions = initialProductions;
   const odgs = initialOdgs;
@@ -48,6 +55,13 @@ export default function CalendarClient({
   const goToToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); };
   const prev = () => { if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1); };
   const next = () => { if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1); };
+
+  const toggleProduction = (id: string) =>
+    setHiddenProductions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = getFirstDayOfMonth(year, month);
@@ -64,10 +78,11 @@ export default function CalendarClient({
     endStr: p.endDate ? p.endDate.slice(0, 10) : null,
   }));
 
-  // Map productionId → color
+  // Only productions currently visible
+  const visibleProductions = productionsWithColor.filter((p) => !hiddenProductions.has(p.id));
+
   const prodColorMap = Object.fromEntries(productionsWithColor.map((p) => [p.id, p.color]));
 
-  // Map dateStr → Odg[]
   const odgByDate = odgs.reduce<Record<string, Odg[]>>((acc, o) => {
     const d = o.date.slice(0, 10);
     (acc[d] ??= []).push(o);
@@ -81,7 +96,7 @@ export default function CalendarClient({
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   function getWeekProductions(week: (number | null)[]) {
-    return productionsWithColor
+    return visibleProductions
       .filter((p) => {
         if (!p.startStr) return false;
         const end = p.endStr ?? p.startStr;
@@ -114,8 +129,10 @@ export default function CalendarClient({
       .filter((p): p is NonNullable<typeof p> => p !== null);
   }
 
+  const hasProductions = productionsWithColor.some((p) => p.startStr);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
@@ -138,6 +155,7 @@ export default function CalendarClient({
         </div>
       </div>
 
+      {/* Calendar */}
       <Card className="overflow-hidden">
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b bg-muted/40">
@@ -150,16 +168,19 @@ export default function CalendarClient({
         {weeks.map((week, weekIdx) => {
           const isLastWeek = weekIdx === weeks.length - 1;
           const weekProds = getWeekProductions(week);
+          const visibleBars = weekProds.slice(0, MAX_BARS_PER_WEEK);
+          const overflowCount = weekProds.length - MAX_BARS_PER_WEEK;
 
           return (
             <div key={weekIdx} className={isLastWeek ? "" : "border-b border-border/60"}>
-              {/* Day number row — fixed min-height includes space for ODG dots */}
+              {/* Day number row */}
               <div className="grid grid-cols-7">
                 {week.map((day, dayIdx) => {
                   const isToday = day === todayDay;
                   const dayStr = day ? `${monthStr}-${String(day).padStart(2, "0")}` : null;
                   const dayOdgs = dayStr ? (odgByDate[dayStr] ?? []) : [];
-                  const firstOdg = dayOdgs[0];
+                  const visibleDayOdgs = dayOdgs.filter((o) => !hiddenProductions.has(o.productionId));
+                  const firstOdg = visibleDayOdgs[0];
 
                   return (
                     <div
@@ -168,13 +189,10 @@ export default function CalendarClient({
                     >
                       {day && (
                         <div className="flex flex-col items-start gap-1">
-                          {/* Day number — clickable if ODG exists */}
                           {firstOdg ? (
                             <Link href={`/productions/${firstOdg.productionId}/odg/${firstOdg.id}`}>
                               <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full transition-colors
-                                ${isToday
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground hover:bg-muted/60 cursor-pointer"}`}>
+                                ${isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60 cursor-pointer"}`}>
                                 {day}
                               </span>
                             </Link>
@@ -185,17 +203,16 @@ export default function CalendarClient({
                             </span>
                           )}
 
-                          {/* ODG dots — one per ODG on this day */}
-                          {dayOdgs.length > 0 && (
+                          {visibleDayOdgs.length > 0 && (
                             <div className="flex gap-0.5 pl-0.5">
-                              {dayOdgs.map((odg) => {
+                              {visibleDayOdgs.map((odg) => {
                                 const color = prodColorMap[odg.productionId];
                                 const isDef = odg.status === "DEFINITIVO";
                                 return (
                                   <span
                                     key={odg.id}
                                     title={isDef ? "ODG definitivo" : "ODG in bozza"}
-                                    className={`w-1.5 h-1.5 rounded-full ${color?.dot ?? "bg-blue-500"} ${isDef ? "opacity-100" : "opacity-50"}`}
+                                    className={`w-1.5 h-1.5 rounded-full ${color?.dot ?? "bg-blue-500"} ${isDef ? "opacity-100" : "opacity-40"}`}
                                   />
                                 );
                               })}
@@ -208,9 +225,9 @@ export default function CalendarClient({
                 })}
               </div>
 
-              {/* Production span bars */}
-              <div className={`grid grid-cols-7 ${weekProds.length > 0 ? "pt-0.5 pb-2 gap-y-0.5" : "pb-3"}`}>
-                {weekProds.map((p) => (
+              {/* Production bars — capped at MAX_BARS_PER_WEEK */}
+              <div className={`grid grid-cols-7 ${visibleBars.length > 0 ? "pt-0.5 gap-y-0.5" : ""} ${overflowCount > 0 ? "pb-0.5" : visibleBars.length > 0 ? "pb-2" : "pb-3"}`}>
+                {visibleBars.map((p) => (
                   <Link
                     key={p.id}
                     href={`/productions/${p.id}`}
@@ -230,42 +247,56 @@ export default function CalendarClient({
                   </Link>
                 ))}
               </div>
+
+              {/* Overflow indicator */}
+              {overflowCount > 0 && (
+                <div className="px-2 pb-1.5 text-xs text-muted-foreground">
+                  +{overflowCount} {overflowCount === 1 ? "altra" : "altre"}
+                </div>
+              )}
             </div>
           );
         })}
       </Card>
 
-      {/* Legend */}
-      {productions.length > 0 && (
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {productionsWithColor.filter((p) => p.startStr).map((p) => (
-            <Link key={p.id} href={`/productions/${p.id}`} className="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity">
-              <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${p.color.bar}`} />
-              <span className="font-medium">{p.title}</span>
-              <span className="text-muted-foreground text-xs">· {p.theatre.name}</span>
-              {p.startStr && <span className="text-muted-foreground text-xs">({new Date(p.startStr).getFullYear()})</span>}
-              {p._count.odgs > 0 && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <FileEdit size={11} className="shrink-0" />
-                  {p._count.odgs} ODG
-                </span>
-              )}
-            </Link>
-          ))}
+      {/* Filter chips — single scrollable row, never wraps */}
+      {hasProductions && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {productionsWithColor.filter((p) => p.startStr).map((p) => {
+            const isHidden = hiddenProductions.has(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => toggleProduction(p.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 transition-all
+                  ${isHidden ? "opacity-35 bg-muted border-border/40 text-muted-foreground line-through" : p.color.chip}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isHidden ? "bg-muted-foreground/40" : p.color.dot}`} />
+                {p.title}
+                <span className="font-normal opacity-70">· {p.theatre.name}</span>
+                {p._count.odgs > 0 && (
+                  <span className="flex items-center gap-0.5 opacity-60">
+                    <FileEdit size={10} />
+                    {p._count.odgs}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Dot convention — inline with chips */}
+          <div className="flex items-center gap-3 ml-2 pl-2 border-l border-border/40 shrink-0 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-foreground/60 shrink-0" />
+              definitivo
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-foreground/25 shrink-0" />
+              bozza
+            </span>
+          </div>
         </div>
       )}
-
-      {/* Dot legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-foreground/60" />
-          <span>ODG definitivo</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-foreground/25" />
-          <span>ODG in bozza</span>
-        </div>
-      </div>
     </div>
   );
 }
