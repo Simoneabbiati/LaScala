@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { renderToBuffer, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
-import { DEPT_LABEL, DEPT_COLOR, DEPT_ORDER } from "@/lib/constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -68,14 +67,19 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   if (!odg) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const departments = await prisma.department.findMany({ orderBy: { sortOrder: "asc" } });
+  const deptOrder = departments.map((d) => d.value);
+  const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
+  const deptColor: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.color]));
+
   const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
   const customDepts = [...new Set(
-    odg.entries.map((e) => e.member.department).filter((d) => !DEPT_ORDER.includes(d))
+    odg.entries.map((e) => e.member.department).filter((d) => !deptOrder.includes(d))
   )];
-  const fullDeptOrder = [...DEPT_ORDER, ...customDepts];
+  const fullDeptOrder = [...deptOrder, ...customDepts];
   const entriesByDept = fullDeptOrder.reduce<Record<string, typeof odg.entries>>((acc, dept) => {
     acc[dept] = odg.entries.filter((e) => e.member.department === dept);
     return acc;
@@ -120,8 +124,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           const entries = entriesByDept[dept] ?? [];
           const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
           if (!entries.length && !extrasEntries.length) return null;
-          const bg = lighten(DEPT_COLOR[dept] ?? "#cccccc");
-          const deptLabel = dept === "CAST" ? "COMPAGNIA" : (DEPT_LABEL[dept] ?? dept).toUpperCase();
+          const bg = lighten(deptColor[dept] ?? "#cccccc");
+          const deptSectionLabel = dept === "CAST" ? "COMPAGNIA" : (deptLabel[dept] ?? dept).toUpperCase();
 
           const entryRow = (entry: typeof entries[number], isExtras = false) => (
             <View key={entry.id} style={styles.row}>
@@ -150,7 +154,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           return (
             <View key={dept} style={styles.section}>
               <View style={[styles.sectionHeader, { backgroundColor: bg }]}>
-                <Text>{deptLabel}</Text>
+                <Text>{deptSectionLabel}</Text>
               </View>
               {entries.length > 0 && (
                 <>

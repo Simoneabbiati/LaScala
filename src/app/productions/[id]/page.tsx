@@ -3,7 +3,7 @@ import React, { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react";
-import { DEPT_BG, DEPT_LABEL, DEPT_ORDER, TECHNICAL_DEPT_VALUES, MAESTRI_COLLABORATORI_VALUES, EXTRAS_TYPES } from "@/lib/constants";
+import { EXTRAS_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ type Odg = { id: string; date: string; status?: string | null };
 type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[]; stageManagerName?: string; stageManagerEmail?: string; stageManagerPhone?: string; asstStageManagerName?: string; asstStageManagerEmail?: string; asstStageManagerPhone?: string };
 
 
+type Dept = { id: string; value: string; label: string; color: string; group: string | null; sortOrder: number; isCustom: boolean };
 type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 
@@ -39,9 +40,20 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const [theatreOptions, setTheatreOptions] = useState<TheatreOption[]>([]);
   const [rosterSearch, setRosterSearch] = useState("");
   const [collapsedDepts, setCollapsedDepts] = useState<Set<string>>(new Set());
+  const [departments, setDepartments] = useState<Dept[]>([]);
 
   const load = () => fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
   useEffect(() => { load(); }, [id]);
+  useEffect(() => { fetch("/api/departments").then((r) => r.json()).then(setDepartments); }, []);
+
+  const deptOrder = departments.map((d) => d.value);
+  const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
+  const deptBg: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, `${d.color}44`]));
+  const deptSegments = departments.reduce<{ group: string | null; items: Dept[] }[]>((acc, dept) => {
+    const last = acc[acc.length - 1];
+    if (last && last.group === dept.group) { last.items.push(dept); } else { acc.push({ group: dept.group, items: [dept] }); }
+    return acc;
+  }, []);
 
   const openProdEdit = async () => {
     if (!production) return;
@@ -134,9 +146,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   });
 
   const productionCustomDepts = production
-    ? [...new Set(production.members.map((m) => m.department).filter((d) => !DEPT_ORDER.includes(d)))]
+    ? [...new Set(production.members.map((m) => m.department).filter((d) => !deptOrder.includes(d)))]
     : [];
-  const fullDeptOrder = [...DEPT_ORDER, ...productionCustomDepts];
+  const fullDeptOrder = [...deptOrder, ...productionCustomDepts];
   const membersByDept = useMemo(() =>
     fullDeptOrder.reduce<Record<string, Member[]>>((acc, dept) => {
       acc[dept] = (production?.members ?? []).filter((m) => m.department === dept);
@@ -315,20 +327,15 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                   <div className="grid grid-cols-2 gap-3">
                     <FormField label="Dipartimento *">
                       <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value, customDept: "", roleTitle: "" })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                        <optgroup label="Compagnia">
-                          <option value="CAST">Solisti</option>
-                          <option value="CAST_EXTRAS">Extras</option>
-                        </optgroup>
-                        <option value="TEAM_CREATIVO">Team Creativo</option>
-                        <optgroup label="Musica">
-                          <option value="ORCHESTRA">Orchestra</option>
-                        </optgroup>
-                        <optgroup label="Maestri Collaboratori">
-                          {MAESTRI_COLLABORATORI_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
-                        </optgroup>
-                        <optgroup label="Reparti Tecnici">
-                          {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
-                        </optgroup>
+                        {deptSegments.map((seg) =>
+                          seg.group ? (
+                            <optgroup key={seg.group} label={seg.group}>
+                              {seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                            </optgroup>
+                          ) : (
+                            seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)
+                          )
+                        )}
                         {productionCustomDepts.length > 0 && (
                           <optgroup label="Personalizzati">
                             {productionCustomDepts.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -400,7 +407,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       onClick={() => toggleCollapsedDept(dept)}
                       className="sticky top-0 z-10 w-full flex items-center justify-between px-3 py-1.5 bg-muted/60 backdrop-blur-sm border-b text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted/80 transition-colors"
                     >
-                      <span>{DEPT_LABEL[dept] ?? dept}</span>
+                      <span>{deptLabel[dept] ?? dept}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-normal normal-case tracking-normal opacity-60">{deptMembers.length}</span>
                         <ChevronDown size={12} className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
@@ -417,20 +424,15 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                             return (
                               <div key={m.id} className="p-3 space-y-2 bg-muted/40">
                                 <select value={editState.department} onChange={(e) => setEditState({ ...editState, department: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
-                                  <optgroup label="Compagnia">
-                                    <option value="CAST">Solisti</option>
-                                    <option value="CAST_EXTRAS">Extras</option>
-                                  </optgroup>
-                                  <option value="TEAM_CREATIVO">Team Creativo</option>
-                                  <optgroup label="Musica">
-                                    <option value="ORCHESTRA">Orchestra</option>
-                                  </optgroup>
-                                  <optgroup label="Maestri Collaboratori">
-                                    {MAESTRI_COLLABORATORI_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
-                                  </optgroup>
-                                  <optgroup label="Reparti Tecnici">
-                                    {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
-                                  </optgroup>
+                                  {deptSegments.map((seg) =>
+                                    seg.group ? (
+                                      <optgroup key={seg.group} label={seg.group}>
+                                        {seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                                      </optgroup>
+                                    ) : (
+                                      seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)
+                                    )
+                                  )}
                                   {productionCustomDepts.length > 0 && (
                                     <optgroup label="Personalizzati">
                                       {productionCustomDepts.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -477,8 +479,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                     {m.department === "CAST_EXTRAS" ? m.roleTitle : (m.person?.name ?? "— da assegnare")}
                                   </p>
                                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                    <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_BG[m.department] ?? "#e5e5e544" }}>
-                                      {DEPT_LABEL[m.department] ?? m.department}
+                                    <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: deptBg[m.department] ?? "#e5e5e544" }}>
+                                      {deptLabel[m.department] ?? m.department}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
                                     {m.characterName && (

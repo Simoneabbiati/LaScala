@@ -116,6 +116,16 @@ model OdgEntry {
   sortOrder        Int              @default(0)
 }
 
+model Department {
+  id        String  @id @default(cuid())
+  value     String  @unique
+  label     String
+  color     String  @default("#cccccc")
+  group     String?
+  sortOrder Int     @default(0)
+  isCustom  Boolean @default(false)
+}
+
 model Opera {
   id           String           @id @default(cuid())
   wikidataId   String           @unique

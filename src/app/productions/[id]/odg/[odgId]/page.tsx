@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
-import { ACTIVITIES, DEPT_BG, DEPT_LABEL, DEPT_ORDER, EXTRAS_TYPES } from "@/lib/constants";
+import { ACTIVITIES, EXTRAS_TYPES } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,11 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const latestNotes = useRef("");
   const latestExtraEvents = useRef("");
 
+  const [departments, setDepartments] = useState<{ value: string; label: string; color: string }[]>([]);
+  const deptOrder = departments.map((d) => d.value);
+  const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
+  const deptBg: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, `${d.color}44`]));
+
   const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => {
     setOdg(data);
     setNotesValue(data.notes ?? ""); latestNotes.current = data.notes ?? "";
@@ -58,6 +63,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     setEditingExtraEvents(false);
   });
   useEffect(() => { load(); }, [odgId]);
+  useEffect(() => { fetch("/api/departments").then((r) => r.json()).then(setDepartments); }, []);
 
   const setStatus = async (status: string | null) => {
     await fetch(`/api/odg/${odgId}`, {
@@ -206,9 +212,9 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const uniqueSessionActivities = sessionActivities.filter((a, i, arr) => arr.findIndex((b) => b.activity === a.activity) === i);
 
   const entryCustomDepts = [...new Set(
-    odg.entries.map((e) => e.member.department).filter((d) => !DEPT_ORDER.includes(d))
+    odg.entries.map((e) => e.member.department).filter((d) => !deptOrder.includes(d))
   )];
-  const fullDeptOrder = [...DEPT_ORDER, ...entryCustomDepts];
+  const fullDeptOrder = [...deptOrder, ...entryCustomDepts];
   const entriesByDept = fullDeptOrder.reduce<Record<string, OdgEntry[]>>((acc, dept) => {
     acc[dept] = odg.entries.filter((e) => e.member.department === dept);
     return acc;
@@ -416,7 +422,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                     const members = production.members.filter((m) => m.department === dept);
                     if (!members.length) return null;
                     const isExtras = dept === "CAST_EXTRAS";
-                    const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (DEPT_LABEL[dept] ?? dept));
+                    const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (deptLabel[dept] ?? dept));
                     return (
                       <optgroup key={dept} label={label}>
                         {members
@@ -474,8 +480,8 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
             if (!entries.length && !extrasEntries.length) return null;
 
-            const deptLabel = dept === "CAST" ? "Compagnia" : (DEPT_LABEL[dept] ?? dept);
-            const deptBg = DEPT_BG[dept] ?? "#e5e5e544";
+            const deptSectionLabel = dept === "CAST" ? "Compagnia" : (deptLabel[dept] ?? dept);
+            const deptSectionBg = deptBg[dept] ?? "#e5e5e544";
             const showSolistiHeader = dept === "CAST" && extrasEntries.length > 0 && entries.length > 0;
 
             const entryRow = (entry: OdgEntry, isExtras = false) => {
@@ -550,7 +556,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
             return (
               <Card key={dept} className="overflow-hidden">
-                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptBg }}>{deptLabel}</div>
+                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptSectionBg }}>{deptSectionLabel}</div>
                 {entries.length > 0 && (
                   <>
                     {showSolistiHeader && (

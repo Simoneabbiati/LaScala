@@ -5,7 +5,6 @@ import {
   TextRun, HeadingLevel, AlignmentType, WidthType, BorderStyle,
   ShadingType, convertInchesToTwip, PageOrientation,
 } from "docx";
-import { DEPT_LABEL, DEPT_COLOR, DEPT_ORDER } from "@/lib/constants";
 
 function hexToDocxColor(hex: string): string {
   return hex.replace("#", "");
@@ -62,15 +61,20 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   if (!odg) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const departments = await prisma.department.findMany({ orderBy: { sortOrder: "asc" } });
+  const deptOrder = departments.map((d) => d.value);
+  const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
+  const deptColor: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.color]));
+
   const dateLabel = new Date(odg.date).toLocaleDateString("it-IT", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const customDepts = [...new Set(
-    odg.entries.map((e) => e.member.department).filter((d) => !DEPT_ORDER.includes(d))
+    odg.entries.map((e) => e.member.department).filter((d) => !deptOrder.includes(d))
   )];
-  const fullDeptOrder = [...DEPT_ORDER, ...customDepts];
+  const fullDeptOrder = [...deptOrder, ...customDepts];
   const entriesByDept = fullDeptOrder.reduce<Record<string, typeof odg.entries>>((acc, dept) => {
     acc[dept] = odg.entries.filter((e) => e.member.department === dept);
     return acc;
@@ -174,11 +178,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     const entries = entriesByDept[dept] ?? [];
     const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
     if (!entries.length && !extrasEntries.length) continue;
-    const bgColor = lightenHex(DEPT_COLOR[dept] ?? "#cccccc");
-    const deptLabel = dept === "CAST" ? "COMPAGNIA" : (DEPT_LABEL[dept] ?? dept).toUpperCase();
+    const bgColor = lightenHex(deptColor[dept] ?? "#cccccc");
+    const deptSectionLabel = dept === "CAST" ? "COMPAGNIA" : (deptLabel[dept] ?? dept).toUpperCase();
 
     children.push(new Paragraph({
-      children: [new TextRun({ text: deptLabel, bold: true, size: 18 })],
+      children: [new TextRun({ text: deptSectionLabel, bold: true, size: 18 })],
       shading: { type: ShadingType.SOLID, color: bgColor },
       spacing: { before: 160, after: 0 },
       indent: { left: convertInchesToTwip(0.1) },
