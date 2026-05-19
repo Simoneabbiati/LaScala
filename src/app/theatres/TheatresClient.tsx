@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { Building2, MapPin, Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
+import Link from "next/link";
+import { Building2, ChevronDown, MapPin, Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -30,7 +31,7 @@ async function searchWikipedia(query: string): Promise<WikiResult[]> {
     `https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + " teatro")}&format=json&origin=*&srlimit=4`
   ).then((r) => r.json());
 
-  const titles: string[] = search.query?.search?.map((s: any) => s.title) ?? [];
+  const titles: string[] = search.query?.search?.map((s: { title: string }) => s.title) ?? [];
   const results: WikiResult[] = [];
 
   for (const title of titles.slice(0, 4)) {
@@ -55,8 +56,16 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
   const [wikiResults, setWikiResults] = useState<WikiResult[]>([]);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
+  const [expandedProductions, setExpandedProductions] = useState<Set<string>>(new Set());
 
   const load = () => fetch("/api/theatres").then((r) => r.json()).then(setTheatres);
+
+  const toggleProductions = (id: string) =>
+    setExpandedProductions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const createTheatre = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,120 +129,171 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ConfirmDialog {...confirm} destructive confirmLabel="Elimina" onCancel={() => setConfirm(defaultConfirm)} />
 
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Teatri</h1>
-          <p className="text-muted-foreground mt-1">Gestisci teatri e le loro sale</p>
+          <p className="text-muted-foreground mt-0.5">Sedi e sale del tuo repertorio</p>
         </div>
-        <Button onClick={() => setShowForm(true)}><Plus size={16} /> Nuovo teatro</Button>
+        <Button onClick={() => { setShowForm(true); setEditState(null); }}>
+          <Plus size={16} /> Nuovo teatro
+        </Button>
       </div>
 
+      {/* New theatre form */}
       {showForm && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Nuovo teatro</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={createTheatre} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Nome teatro *</label>
-                  <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Teatro alla Scala" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Città *</label>
+          <CardContent className="pt-4">
+            <form onSubmit={createTheatre} className="space-y-3">
+              <p className="text-sm font-semibold">Nuovo teatro</p>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Nome *">
+                  <Input required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Teatro alla Scala" />
+                </FormField>
+                <FormField label="Città *">
                   <Input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Milano" />
-                </div>
+                </FormField>
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Crea</Button>
-                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
+                <Button type="submit" size="sm">Crea</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
+      {/* Theatre list */}
       {theatres.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nessun teatro ancora.</CardContent></Card>
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Building2 size={32} className="mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">Nessun teatro ancora.</p>
+            <button onClick={() => setShowForm(true)} className="text-sm text-primary hover:underline mt-1">
+              Aggiungi il primo teatro →
+            </button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {theatres.map((t) => {
             const isEditing = editState?.id === t.id;
+            const isExpanded = expandedProductions.has(t.id);
+            const hasProductions = t._count.productions > 0;
+
             return (
-              <Card key={t.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      {t.logoUrl
-                        ? <Image src={t.logoUrl} alt={t.name} width={40} height={40} className="rounded object-cover shrink-0 mt-0.5" />
-                        : <Building2 size={18} className="text-muted-foreground shrink-0 mt-1" />}
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base">{t.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-0.5">{t.city} · {t._count.productions} produzioni</p>
-                        {t.locations.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {t.locations.map((loc) => (
-                              <Badge key={loc.id} variant="secondary" className="gap-1 pr-1 text-xs">
-                                <MapPin size={9} /> {loc.name}
-                                <button onClick={() => deleteLocation(t.id, loc.id)} className="ml-1 hover:text-destructive leading-none">×</button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <TooltipProvider>
-                    <div className="flex gap-1 shrink-0">
-                      <Tooltip>
-                        <TooltipTrigger render={<span />}>
-                          <Button variant="ghost" size="icon" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
-                            <Plus size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Aggiungi sala</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger render={<span />}>
-                          <Button variant="ghost" size="icon" onClick={() => {
-                            setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
-                            setWikiResults([]);
-                          }}>
-                            <Pencil size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Modifica teatro</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger render={<span />}>
-                          <Button variant="ghost-destructive" size="icon" onClick={() => deleteTheatre(t)}>
-                            <Trash2 size={15} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Elimina teatro</TooltipContent>
-                      </Tooltip>
-                    </div>
-                    </TooltipProvider>
+              <Card key={t.id} className="overflow-hidden">
+                {/* Main row */}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  {/* Logo / icon */}
+                  <div className="shrink-0">
+                    {t.logoUrl
+                      ? <Image src={t.logoUrl} alt={t.name} width={36} height={36} className="rounded object-cover" />
+                      : <div className="w-9 h-9 rounded bg-muted flex items-center justify-center"><Building2 size={16} className="text-muted-foreground" /></div>}
                   </div>
 
-                  {showAddLocation[t.id] && (
-                    <div className="flex gap-2 mt-3 max-w-sm">
-                      <Input
-                        autoFocus
-                        value={locationForms[t.id] ?? ""}
-                        onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === "Enter") { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); } if (e.key === "Escape") setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }}
-                        placeholder="Nome sala..."
-                        className="h-8 text-sm"
-                      />
-                      <Button size="sm" onClick={() => { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }}>Aggiungi</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: false }))}><X size={13} /></Button>
+                  {/* Name + city + locations */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{t.name}</span>
+                      <span className="text-xs text-muted-foreground">{t.city}</span>
                     </div>
-                  )}
+                    {t.locations.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {t.locations.map((loc) => (
+                          <Badge key={loc.id} variant="secondary" className="gap-1 pr-1 text-xs font-normal">
+                            <MapPin size={9} className="shrink-0" /> {loc.name}
+                            <button
+                              onClick={() => deleteLocation(t.id, loc.id)}
+                              className="ml-0.5 hover:text-destructive leading-none transition-colors"
+                            >×</button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                  {isEditing && editState && (
-                    <div className="mt-4 space-y-3 border-t pt-4">
+                  {/* Right side: production count + actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {hasProductions && (
+                      <button
+                        onClick={() => toggleProductions(t.id)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
+                      >
+                        <span className="font-medium tabular-nums">{t._count.productions}</span>
+                        <span>{t._count.productions === 1 ? "produzione" : "produzioni"}</span>
+                        <ChevronDown size={12} className={`transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+                      </button>
+                    )}
+                    {!hasProductions && (
+                      <span className="text-xs text-muted-foreground/50 px-2">0 produzioni</span>
+                    )}
+
+                    <TooltipProvider>
+                      <div className="flex gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger render={<span />}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
+                              <Plus size={13} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Aggiungi sala</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger render={<span />}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() => { setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" }); setWikiResults([]); }}>
+                              <Pencil size={13} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Modifica</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger render={<span />}>
+                            <Button variant="ghost-destructive" size="icon" className="h-7 w-7"
+                              onClick={() => deleteTheatre(t)}>
+                              <Trash2 size={13} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Elimina</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
+                  </div>
+                </div>
+
+                {/* Add location inline */}
+                {showAddLocation[t.id] && (
+                  <div className="px-4 pb-3 flex gap-2 max-w-sm">
+                    <Input
+                      autoFocus
+                      value={locationForms[t.id] ?? ""}
+                      onChange={(e) => setLocationForms((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }
+                        if (e.key === "Escape") setShowAddLocation((prev) => ({ ...prev, [t.id]: false }));
+                      }}
+                      placeholder="Nome sala…"
+                      className="h-8 text-sm"
+                    />
+                    <Button size="sm" onClick={() => { addLocation(t.id); setShowAddLocation((prev) => ({ ...prev, [t.id]: false })); }}>
+                      Aggiungi
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: false }))}>
+                      <X size={13} />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Edit form */}
+                {isEditing && editState && (
+                  <>
+                    <Separator />
+                    <div className="px-4 py-3 space-y-3 bg-muted/20">
                       <div className="grid grid-cols-2 gap-3">
                         <FormField label="Nome">
                           <Input value={editState.name} onChange={(e) => setEditState({ ...editState, name: e.target.value })} />
@@ -242,14 +302,12 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                           <Input value={editState.city} onChange={(e) => setEditState({ ...editState, city: e.target.value })} />
                         </FormField>
                       </div>
-
-                      <Button type="button" variant="outline" onClick={searchImages} disabled={wikiLoading}>
-                        <Search size={14} /> {wikiLoading ? "Ricerca in corso..." : "Cerca immagine su Wikipedia"}
+                      <Button type="button" variant="outline" size="sm" onClick={searchImages} disabled={wikiLoading}>
+                        <Search size={13} /> {wikiLoading ? "Ricerca…" : "Cerca immagine su Wikipedia"}
                       </Button>
-
                       {wikiResults.length > 0 && (
                         <div>
-                          <p className="text-xs text-muted-foreground mb-2">Clicca un'immagine per selezionarla:</p>
+                          <p className="text-xs text-muted-foreground mb-2">Seleziona un'immagine:</p>
                           <div className="flex gap-3 flex-wrap">
                             {wikiResults.map((r) => (
                               <button
@@ -257,53 +315,52 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                                 onClick={() => setEditState({ ...editState, logoUrl: r.thumbnail! })}
                                 className={`rounded-lg overflow-hidden border-2 transition-colors ${editState.logoUrl === r.thumbnail ? "border-primary" : "border-transparent hover:border-border"}`}
                               >
-                                <Image src={r.thumbnail!} alt={r.title} width={96} height={96} className="object-cover" />
-                                <p className="text-xs text-center p-1 max-w-24 truncate">{r.title}</p>
+                                <Image src={r.thumbnail!} alt={r.title} width={80} height={80} className="object-cover" />
+                                <p className="text-xs text-center p-1 max-w-20 truncate">{r.title}</p>
                               </button>
                             ))}
                           </div>
                         </div>
                       )}
-
                       {wikiResults.length === 0 && !wikiLoading && editState.logoUrl && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Anteprima:</p>
-                          <Image src={editState.logoUrl} alt="preview" width={96} height={96} className="rounded object-cover border" />
+                          <Image src={editState.logoUrl} alt="preview" width={80} height={80} className="rounded object-cover border" />
                         </div>
                       )}
-
                       <div className="flex gap-2">
                         <Button size="sm" onClick={saveEdit}><Check size={13} /> Salva</Button>
                         <Button size="sm" variant="ghost" onClick={() => { setEditState(null); setWikiResults([]); }}><X size={13} /> Annulla</Button>
                       </div>
                     </div>
-                  )}
-                </CardHeader>
+                  </>
+                )}
 
-                {t.productions.length > 0 && (
+                {/* Productions — collapsed by default */}
+                {isExpanded && hasProductions && (
                   <>
                     <Separator />
-                    <CardContent className="pt-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Produzioni</p>
-                      <div className="divide-y rounded-lg border overflow-hidden">
-                        {t.productions.map((p) => {
-                          const year = p.startDate ? new Date(p.startDate).getFullYear() : null;
-                          const dateRange = p.startDate
-                            ? new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" }) +
-                              (p.endDate ? ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}` : ` ${year}`)
-                            : null;
-                          return (
-                            <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/30 transition-colors">
-                              <div>
-                                <span className="font-medium">{p.title}</span>
-                                {p.composer && <span className="text-muted-foreground ml-1.5 text-xs">— {p.composer}</span>}
-                              </div>
-                              {dateRange && <span className="text-xs text-muted-foreground shrink-0 ml-4">{dateRange}</span>}
+                    <div className="divide-y">
+                      {t.productions.map((p) => {
+                        const dateRange = p.startDate
+                          ? new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" }) +
+                            (p.endDate ? ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}` : "")
+                          : null;
+                        return (
+                          <Link
+                            key={p.id}
+                            href={`/productions/${p.id}`}
+                            className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-medium">{p.title}</span>
+                              {p.composer && <span className="text-muted-foreground ml-1.5 text-xs">— {p.composer}</span>}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
+                            {dateRange && <span className="text-xs text-muted-foreground shrink-0 ml-4">{dateRange}</span>}
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </>
                 )}
               </Card>
