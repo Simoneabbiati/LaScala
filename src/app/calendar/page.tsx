@@ -13,5 +13,12 @@ export default async function CalendarPage() {
     orderBy: { startDate: "asc" },
   });
 
-  return <CalendarClient initialProductions={productions} />;
+  const serialized = productions.map((p) => ({
+    ...p,
+    composer: p.composer ?? null,
+    startDate: p.startDate ? p.startDate.toISOString().slice(0, 10) : null,
+    endDate: p.endDate ? p.endDate.toISOString().slice(0, 10) : null,
+  }));
+
+  return <CalendarClient initialProductions={serialized} />;
 }

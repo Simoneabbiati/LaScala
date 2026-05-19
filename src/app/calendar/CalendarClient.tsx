@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 type Production = {
-  id: string; title: string; composer?: string;
+  id: string; title: string; composer?: string | null;
   startDate?: string | null; endDate?: string | null;
   theatre: { name: string };
 };
@@ -26,10 +26,6 @@ const PROD_COLORS = [
 function getFirstDayOfMonth(year: number, month: number) {
   const day = new Date(year, month, 1).getDay();
   return day === 0 ? 6 : day - 1;
-}
-
-function toDateStr(d: Date) {
-  return d.toISOString().slice(0, 10);
 }
 
 export default function CalendarClient({ initialProductions }: { initialProductions: Production[] }) {
