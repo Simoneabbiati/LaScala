@@ -342,6 +342,16 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                     <Separator />
                     <div className="divide-y">
                       {t.productions.map((p) => {
+                        const now = new Date();
+                        const start = p.startDate ? new Date(p.startDate) : null;
+                        const end = p.endDate ? new Date(p.endDate) : null;
+                        const status = start && end && start <= now && end >= now
+                          ? "active"
+                          : start && start > now
+                          ? "future"
+                          : "past";
+                        const statusVariant = status === "active" ? "warning" : status === "future" ? "info" : "secondary";
+                        const statusLabel = status === "active" ? "In scena" : status === "future" ? "In programma" : "Conclusa";
                         const dateRange = p.startDate
                           ? new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long" }) +
                             (p.endDate ? ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}` : "")
@@ -356,7 +366,10 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                               <span className="font-medium">{p.title}</span>
                               {p.composer && <span className="text-muted-foreground ml-1.5 text-xs">— {p.composer}</span>}
                             </div>
-                            {dateRange && <span className="text-xs text-muted-foreground shrink-0 ml-4">{dateRange}</span>}
+                            <div className="flex items-center gap-3 shrink-0 ml-4">
+                              <Badge variant={statusVariant}>{statusLabel}</Badge>
+                              {dateRange && <span className="text-xs text-muted-foreground">{dateRange}</span>}
+                            </div>
                           </Link>
                         );
                       })}
