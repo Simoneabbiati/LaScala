@@ -137,30 +137,29 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             <h1 className="text-2xl font-bold tracking-tight capitalize">{dateLabel}</h1>
             <p className="text-muted-foreground">{production.title} · {production.theatre.name}</p>
           </div>
-          <div className="flex flex-col items-stretch gap-2 shrink-0 w-64">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Status toggle */}
-            <div className="flex rounded-lg border overflow-hidden text-sm">
+            <div className="flex rounded-md border overflow-hidden text-sm shadow-sm">
               <button
                 onClick={() => setStatus(odg.status === "BOZZA" ? null : "BOZZA")}
-                className={`flex-1 py-2 text-center text-sm font-medium transition-colors ${odg.status === "BOZZA" ? "bg-amber-100 text-amber-700" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`px-4 py-1.5 font-medium transition-colors ${odg.status === "BOZZA" ? "bg-amber-50 text-amber-700 border-r border-amber-200" : "text-muted-foreground hover:bg-muted/50 border-r border-border"}`}
               >
                 In lavorazione
               </button>
-              <div className="w-px bg-border" />
               <button
                 onClick={() => setStatus(odg.status === "DEFINITIVO" ? null : "DEFINITIVO")}
-                className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-sm font-medium transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-100 text-green-700" : "text-muted-foreground hover:bg-muted/50"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 font-medium transition-colors ${odg.status === "DEFINITIVO" ? "bg-green-50 text-green-700" : "text-muted-foreground hover:bg-muted/50"}`}
               >
                 {odg.status === "DEFINITIVO" && <Check size={13} />} Definitivo
               </button>
             </div>
             {/* Export buttons */}
-            <div className="flex gap-2">
-              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline" }), "flex-1 justify-center")}>
-                <FileDown size={15} /> PDF
+            <div className="flex gap-1.5">
+              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+                <FileDown size={14} /> PDF
               </Link>
-              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline" }), "flex-1 justify-center")}>
-                <FileText size={15} /> Word
+              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+                <FileText size={14} /> Word
               </Link>
             </div>
           </div>
@@ -182,7 +181,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
         <CardContent className="pt-3 space-y-1">
           {odg.sessions.length === 0 && !showSessionForm && (
-            <p className="text-sm text-muted-foreground">Nessun blocco orario ancora.</p>
+            <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessun blocco orario ancora.</p>
           )}
 
           {odg.sessions.map((s) => {
@@ -223,6 +222,13 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           {showSessionForm && (
             <form onSubmit={addSession} className="px-1 pt-2 pb-1 space-y-2 mt-2">
               <div className="grid grid-cols-5 gap-2">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Tipo di attività</label>
+                  <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                    <option value="">Seleziona attività…</option>
+                    {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">Ora inizio</label>
                   <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
@@ -230,13 +236,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">Ora fine</label>
                   <Input required type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })} className="h-8 text-sm" />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Tipo di attività</label>
-                  <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                    <option value="">Seleziona attività…</option>
-                    {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">Sala / Luogo</label>
@@ -256,88 +255,80 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
       </Card>
 
       {/* Chiamate individuali */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Chiamate individuali</h2>
-          <Button size="sm" variant="outline" onClick={() => setShowEntryForm(!showEntryForm)}>
-            <Plus size={14} /> Aggiungi chiamata
-          </Button>
-        </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Chiamate individuali</CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setShowEntryForm(!showEntryForm)}>
+              <Plus size={14} /> Aggiungi chiamata
+            </Button>
+          </div>
+        </CardHeader>
+
+        {(odg.entries.length > 0 || showEntryForm) && <Separator />}
+
+        <CardContent className="pt-3 space-y-3">
 
         {showEntryForm && (
-          <Card>
-            <CardContent className="pt-4">
-              <form onSubmit={addEntry} className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-
-                  {/* 1. Attività — first, drives the rest */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Attività *</label>
-                    {uniqueSessionActivities.length > 0 ? (
-                      <select required value={entryForm.activity} onChange={(e) => handleEntryActivity(e.target.value)} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                        <option value="">Seleziona attività...</option>
-                        {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
-                      </select>
-                    ) : (
-                      <p className="text-xs text-amber-600 pt-1.5">Aggiungi prima un blocco nel programma del giorno.</p>
-                    )}
-                  </div>
-
-                  {/* 2. Orario inizio — auto-filled from session */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Orario inizio *</label>
-                    <Input required type="time" value={entryForm.startTime} onChange={(e) => setEntryForm({ ...entryForm, startTime: e.target.value })} className="h-8 text-sm" />
-                  </div>
-
-                  {/* 3. Orario fine — auto-filled from session */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Orario fine *</label>
-                    <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
-                  </div>
-
-                  {/* 4. Persona */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Persona *</label>
-                    <select required value={entryForm.memberId} onChange={(e) => setEntryForm({ ...entryForm, memberId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                      <option value="">Seleziona persona...</option>
-                      {DEPT_ORDER.map((dept) => {
-                        const members = production.members.filter((m) => m.department === dept);
-                        if (!members.length) return null;
-                        return (
-                          <optgroup key={dept} label={DEPT_LABEL[dept]}>
-                            {members.map((m) => <option key={m.id} value={m.id}>{m.person.name} — {m.roleTitle}</option>)}
-                          </optgroup>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  {/* 5. Luogo — auto-filled, can override */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Luogo</label>
-                    <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                      <option value="">—</option>
-                      {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
-
-                  {/* 6. Note */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Note</label>
-                    <Input value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} placeholder="Note opzionali" className="h-8 text-sm" />
-                  </div>
-
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" size="sm">Aggiungi</Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setShowEntryForm(false)}>Annulla</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <form onSubmit={addEntry} className="space-y-3 pb-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Attività *</label>
+                {uniqueSessionActivities.length > 0 ? (
+                  <select required value={entryForm.activity} onChange={(e) => handleEntryActivity(e.target.value)} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                    <option value="">Seleziona attività...</option>
+                    {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
+                  </select>
+                ) : (
+                  <p className="text-xs text-amber-600 pt-1.5">Aggiungi prima un blocco nel programma del giorno.</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Orario inizio *</label>
+                <Input required type="time" value={entryForm.startTime} onChange={(e) => setEntryForm({ ...entryForm, startTime: e.target.value })} className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Orario fine *</label>
+                <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Persona *</label>
+                <select required value={entryForm.memberId} onChange={(e) => setEntryForm({ ...entryForm, memberId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                  <option value="">Seleziona persona...</option>
+                  {DEPT_ORDER.map((dept) => {
+                    const members = production.members.filter((m) => m.department === dept);
+                    if (!members.length) return null;
+                    return (
+                      <optgroup key={dept} label={DEPT_LABEL[dept]}>
+                        {members.map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}</option>)}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Luogo</label>
+                <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                  <option value="">—</option>
+                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Note</label>
+                <Input value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} placeholder="Note opzionali" className="h-8 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" size="sm">Aggiungi</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setShowEntryForm(false)}>Annulla</Button>
+            </div>
+          </form>
         )}
 
-        {/* Entries by department */}
+        {odg.entries.length === 0 && !showEntryForm && (
+          <p className="pb-2 pt-1 text-sm text-muted-foreground">Nessuna chiamata ancora.</p>
+        )}
+
         <div className="space-y-3">
           {DEPT_ORDER.map((dept) => {
             const entries = entriesByDept[dept];
@@ -385,11 +376,10 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
               </Card>
             );
           })}
-          {odg.entries.length === 0 && (
-            <Card><CardContent className="py-10 text-center text-muted-foreground text-sm">Nessuna chiamata ancora. Aggiungi le presenze per oggi.</CardContent></Card>
-          )}
         </div>
-      </div>
+
+        </CardContent>
+      </Card>
     </div>
   );
 }
