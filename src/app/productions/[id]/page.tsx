@@ -352,7 +352,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                     <FormField label="Dipartimento *">
                       <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value, customDept: "", roleTitle: "" })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                         {formDeptSegments.map((seg) =>
-                          seg.group ? (
+                          seg.group && !(seg.items.length === 1 && seg.items[0].label === seg.group) ? (
                             <optgroup key={seg.group} label={seg.group}>
                               {seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                             </optgroup>
