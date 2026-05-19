@@ -8,16 +8,15 @@ export async function PATCH(
   const { memberId } = await params;
   const body = await req.json();
 
-  if (body.personName) {
-    const current = await prisma.productionMember.findUnique({
-      where: { id: memberId },
-      include: { person: true },
-    });
+  const current = await prisma.productionMember.findUnique({
+    where: { id: memberId },
+    include: { person: true },
+  });
 
+  if (body.personName) {
     const nameUnchanged = current?.person?.name === body.personName;
 
     if (nameUnchanged && current?.personId) {
-      // Same name — only update contact details on the existing person
       await prisma.person.update({
         where: { id: current.personId },
         data: {
@@ -40,6 +39,30 @@ export async function PATCH(
           },
         });
       }
+      await prisma.productionMember.update({
+        where: { id: memberId },
+        data: { personId: person.id },
+      });
+    }
+  } else if (body.email !== undefined || body.phone !== undefined) {
+    // No personName (e.g. REPARTI_TECNICI role slots) — still persist contact details
+    if (current?.personId) {
+      await prisma.person.update({
+        where: { id: current.personId },
+        data: {
+          email: body.email ?? current.person?.email,
+          phone: body.phone ?? current.person?.phone,
+        },
+      });
+    } else if (body.email || body.phone) {
+      // Role-slot with no person yet — create one using roleTitle as name
+      const person = await prisma.person.create({
+        data: {
+          name: body.roleTitle,
+          email: body.email || null,
+          phone: body.phone || null,
+        },
+      });
       await prisma.productionMember.update({
         where: { id: memberId },
         data: { personId: person.id },
