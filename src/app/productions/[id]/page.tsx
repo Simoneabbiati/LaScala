@@ -2,7 +2,7 @@
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronRight, Pencil, Plus, Trash2, Users, X, Check } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users, X, Check } from "lucide-react";
 import { DEPARTMENTS, DEPT_COLOR, DEPT_LABEL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [memberForm, setMemberForm] = useState({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
   const [showProdEdit, setShowProdEdit] = useState(false);
   const [prodEditForm, setProdEditForm] = useState({ title: "", composer: "", theatreId: "", startDate: "", endDate: "" });
@@ -330,6 +331,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               {DEPT_ORDER.flatMap((dept) =>
                 (membersByDept[dept] ?? []).map((m) => {
                   const isEditing = editState?.memberId === m.id;
+                  const isExpanded = expandedId === m.id;
 
                   if (isEditing && editState) {
                     return (
@@ -352,40 +354,48 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                     );
                   }
 
+                  const hasDetails = !!(m.person?.email || m.person?.phone || m.notes);
                   return (
-                    <div key={m.id} className="group flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${!m.person ? "text-muted-foreground italic" : ""}`}>
-                          {m.person?.name ?? "— da assegnare"}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
-                            {DEPT_LABEL[m.department]}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
-                          {m.characterName && (
-                            <span className="text-xs text-foreground/70 truncate">· {m.characterName}</span>
-                          )}
-                        </div>
-                        {(m.person?.email || m.person?.phone || m.notes) && (
-                          <div className="flex items-center gap-3 mt-1 flex-wrap">
-                            {m.person?.email && (
-                              <a href={`mailto:${m.person.email}`} className="text-xs text-muted-foreground hover:text-primary truncate">{m.person.email}</a>
-                            )}
-                            {m.person?.phone && (
-                              <a href={`tel:${m.person.phone}`} className="text-xs text-muted-foreground hover:text-primary">{m.person.phone}</a>
-                            )}
-                            {m.notes && (
-                              <span className="text-xs text-muted-foreground italic truncate">{m.notes}</span>
+                    <React.Fragment key={m.id}>
+                      <div
+                        className={`group flex items-center gap-2 px-3 py-2.5 transition-colors ${hasDetails ? "cursor-pointer hover:bg-muted/30" : ""}`}
+                        onClick={() => hasDetails && setExpandedId(isExpanded ? null : m.id)}
+                      >
+                        {hasDetails && (
+                          <ChevronDown size={13} className={`text-muted-foreground/50 transition-transform shrink-0 ${isExpanded ? "" : "-rotate-90"}`} />
+                        )}
+                        {!hasDetails && <span className="w-[13px] shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${!m.person ? "text-muted-foreground italic" : ""}`}>
+                            {m.person?.name ?? "— da assegnare"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
+                              {DEPT_LABEL[m.department]}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
+                            {m.characterName && (
+                              <span className="text-xs text-foreground/70">· {m.characterName}</span>
                             )}
                           </div>
-                        )}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Button size="icon-sm" variant="ghost" onClick={() => startEdit(m)}><Pencil size={12} /></Button>
+                          <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => removeMember(m)}><Trash2 size={12} /></Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button size="icon-sm" variant="ghost" onClick={() => startEdit(m)}><Pencil size={12} /></Button>
-                        <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => removeMember(m)}><Trash2 size={12} /></Button>
-                      </div>
-                    </div>
+                      {isExpanded && hasDetails && (
+                        <div className="bg-muted/20 px-8 py-3 space-y-1.5 text-sm">
+                          {m.person?.email && (
+                            <p><a href={`mailto:${m.person.email}`} onClick={(e) => e.stopPropagation()} className="text-xs text-muted-foreground hover:text-primary">{m.person.email}</a></p>
+                          )}
+                          {m.person?.phone && (
+                            <p><a href={`tel:${m.person.phone}`} onClick={(e) => e.stopPropagation()} className="text-xs text-muted-foreground hover:text-primary">{m.person.phone}</a></p>
+                          )}
+                          {m.notes && <p className="text-xs text-muted-foreground italic">{m.notes}</p>}
+                        </div>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}
