@@ -4,6 +4,12 @@ import { prisma } from "@/lib/db";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: odgId } = await params;
   const body = await req.json();
+
+  const member = await prisma.productionMember.findUnique({ where: { id: body.memberId } });
+  const characterName = body.characterName !== undefined
+    ? (body.characterName || null)
+    : (member?.characterName ?? null);
+
   const entry = await prisma.odgEntry.create({
     data: {
       odgId,
@@ -13,6 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       activity: body.activity,
       locationId: body.locationId || null,
       notes: body.notes,
+      characterName,
       sortOrder: body.sortOrder ?? 0,
     },
     include: { member: { include: { person: true } }, location: true },

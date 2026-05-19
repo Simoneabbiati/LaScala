@@ -15,7 +15,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
 type Member = { id: string; department: string; roleTitle: string; characterName?: string; person: Person };
-type OdgEntry = { id: string; startTime: string; endTime: string; activity: string; location?: Location; notes?: string; member: Member };
+type OdgEntry = { id: string; startTime: string; endTime: string; activity: string; location?: Location; notes?: string; characterName?: string; member: Member };
 type OdgSession = { id: string; startTime: string; endTime: string; activity: string; location?: Location };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type Production = { id: string; title: string; composer?: string; theatre: Theatre; members: Member[] };
@@ -23,10 +23,10 @@ type OdgFull = { id: string; date: string; status?: string | null; notes?: strin
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "" });
-const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "" });
+const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
 type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
-type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string };
+type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string; characterName: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
 
@@ -44,8 +44,20 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const [extraEventsValue, setExtraEventsValue] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [showExtraEvents, setShowExtraEvents] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [editingExtraEvents, setEditingExtraEvents] = useState(false);
+  const latestNotes = useRef("");
+  const latestExtraEvents = useRef("");
 
-  const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => { setOdg(data); setNotesValue(data.notes ?? ""); setExtraEventsValue(data.extraEvents ?? ""); setShowNotes(!!data.notes); setShowExtraEvents(!!data.extraEvents); });
+  const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => {
+    setOdg(data);
+    setNotesValue(data.notes ?? ""); latestNotes.current = data.notes ?? "";
+    setExtraEventsValue(data.extraEvents ?? ""); latestExtraEvents.current = data.extraEvents ?? "";
+    setShowNotes(!!data.notes);
+    setShowExtraEvents(!!data.extraEvents);
+    setEditingNotes(false);
+    setEditingExtraEvents(false);
+  });
   useEffect(() => { load(); }, [odgId]);
 
   const setStatus = async (status: string | null) => {
@@ -127,6 +139,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const handleNotesChange = (value: string) => {
     setNotesValue(value);
+    latestNotes.current = value;
     if (notesTimer.current) clearTimeout(notesTimer.current);
     notesTimer.current = setTimeout(async () => {
       await fetch(`/api/odg/${odgId}`, {
@@ -139,6 +152,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const handleExtraEventsChange = (value: string) => {
     setExtraEventsValue(value);
+    latestExtraEvents.current = value;
     if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
     extraEventsTimer.current = setTimeout(async () => {
       await fetch(`/api/odg/${odgId}`, {
@@ -149,12 +163,32 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     }, 600);
   };
 
+  const saveNotesNow = async (value: string) => {
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    await fetch(`/api/odg/${odgId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: value }),
+    });
+    if (!value.trim()) setShowNotes(false);
+    setEditingNotes(false);
+  };
+
+  const saveExtraEventsNow = async (value: string) => {
+    if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
+    await fetch(`/api/odg/${odgId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraEvents: value }),
+    });
+    if (!value.trim()) setShowExtraEvents(false);
+    setEditingExtraEvents(false);
+  };
+
   const flushAndExport = async (url: string, newTab = false) => {
     if (notesTimer.current) clearTimeout(notesTimer.current);
     if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
     await fetch(`/api/odg/${odgId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes: notesValue, extraEvents: extraEventsValue }),
+      body: JSON.stringify({ notes: latestNotes.current, extraEvents: latestExtraEvents.current }),
     });
     if (newTab) window.open(url, "_blank");
     else window.location.href = url;
@@ -368,18 +402,24 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 <Input required type="time" value={entryForm.endTime} onChange={(e) => setEntryForm({ ...entryForm, endTime: e.target.value })} className="h-8 text-sm" />
               </FormField>
               <FormField label="Persona *">
-                <select required value={entryForm.memberId} onChange={(e) => setEntryForm({ ...entryForm, memberId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                <select required value={entryForm.memberId} onChange={(e) => {
+                  const m = production.members.find((mb) => mb.id === e.target.value);
+                  setEntryForm({ ...entryForm, memberId: e.target.value, characterName: m?.characterName ?? "" });
+                }} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                   <option value="">Seleziona persona...</option>
                   {DEPT_ORDER.map((dept) => {
                     const members = production.members.filter((m) => m.department === dept);
                     if (!members.length) return null;
                     return (
                       <optgroup key={dept} label={DEPT_LABEL[dept]}>
-                        {members.filter((m) => m.person).map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}</option>)}
+                        {members.filter((m) => m.person).map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}{m.department === "CAST" ? ` (${m.roleTitle})` : ""}</option>)}
                       </optgroup>
                     );
                   })}
                 </select>
+              </FormField>
+              <FormField label="Personaggio">
+                <Input value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. Violetta" className="h-8 text-sm" />
               </FormField>
               <FormField label="Luogo">
                 <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
@@ -428,8 +468,11 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                         return (
                           <TableRow key={entry.id}>
                             <TableCell colSpan={6}>
-                              <form onSubmit={saveEntry} className="flex items-center gap-2">
+                              <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-medium shrink-0">{entry.member.person.name}</span>
+                                {entry.member.department === "CAST" && (
+                                  <Input value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Personaggio" className="h-7 w-28 text-sm" />
+                                )}
                                 <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
                                 <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
                                 <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
@@ -451,7 +494,14 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                         <TableRow key={entry.id} className="group">
                           <TableCell>
                             <div className="font-medium text-sm">{entry.member.person.name}</div>
-                            <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+                            {entry.member.department === "CAST" ? (
+                              <div className="text-xs text-muted-foreground italic">
+                                {(entry.characterName ?? entry.member.characterName) || "—"}
+                                <span className="text-muted-foreground/60 not-italic"> · {entry.member.roleTitle}</span>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+                            )}
                           </TableCell>
                           <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
                           <TableCell className="text-sm">{entry.activity}</TableCell>
@@ -460,7 +510,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                           <TableCell>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
-                                onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "" })}>
+                                onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "", characterName: entry.characterName ?? entry.member.characterName ?? "" })}>
                                 <Pencil size={12} />
                               </Button>
                               <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
@@ -489,19 +539,35 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         </CardHeader>
         <Separator />
         <CardContent className="pt-3 space-y-2">
-          {showExtraEvents && (
-            <textarea
-              autoFocus
-              value={extraEventsValue}
-              onChange={(e) => handleExtraEventsChange(e.target.value)}
-              placeholder="Es. OPERA INTRO ore 15.00 in Foyer Erker - Moderatore: Diego Villegas"
-              rows={4}
-              className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
+          {showExtraEvents && editingExtraEvents && (
+            <>
+              <textarea
+                autoFocus
+                value={extraEventsValue}
+                onChange={(e) => handleExtraEventsChange(e.target.value)}
+                placeholder="Es. OPERA INTRO ore 15.00 in Foyer Erker - Moderatore: Diego Villegas"
+                rows={4}
+                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <Button size="sm" onClick={() => saveExtraEventsNow(latestExtraEvents.current)}>Salva</Button>
+            </>
           )}
-          <button onClick={() => setShowExtraEvents(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
-            <Plus size={13} /> Aggiungi evento collaterale
-          </button>
+          {showExtraEvents && !editingExtraEvents && (
+            <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
+              <p className="flex-1 text-sm whitespace-pre-wrap">{extraEventsValue}</p>
+              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingExtraEvents(true)}>
+                <Pencil size={11} />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveExtraEventsNow("")}>
+                <Trash2 size={11} />
+              </Button>
+            </div>
+          )}
+          {!showExtraEvents && (
+            <button onClick={() => { setShowExtraEvents(true); setEditingExtraEvents(true); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
+              <Plus size={13} /> Aggiungi evento collaterale
+            </button>
+          )}
         </CardContent>
       </Card>
 
@@ -512,19 +578,35 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         </CardHeader>
         <Separator />
         <CardContent className="pt-3 space-y-2">
-          {showNotes && (
-            <textarea
-              autoFocus
-              value={notesValue}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="Scrivi una nota..."
-              rows={4}
-              className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
+          {showNotes && editingNotes && (
+            <>
+              <textarea
+                autoFocus
+                value={notesValue}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder="Scrivi una nota..."
+                rows={4}
+                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <Button size="sm" onClick={() => saveNotesNow(latestNotes.current)}>Salva</Button>
+            </>
           )}
-          <button onClick={() => setShowNotes(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
-            <Plus size={13} /> Aggiungi nota
-          </button>
+          {showNotes && !editingNotes && (
+            <div className="group flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
+              <p className="flex-1 text-sm whitespace-pre-wrap">{notesValue}</p>
+              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditingNotes(true)}>
+                <Pencil size={11} />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive" onClick={() => saveNotesNow("")}>
+                <Trash2 size={11} />
+              </Button>
+            </div>
+          )}
+          {!showNotes && (
+            <button onClick={() => { setShowNotes(true); setEditingNotes(true); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
+              <Plus size={13} /> Aggiungi nota
+            </button>
+          )}
         </CardContent>
       </Card>
     </div>

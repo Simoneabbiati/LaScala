@@ -15,6 +15,7 @@ export async function PATCH(
       activity: body.activity,
       locationId: body.locationId || null,
       notes: body.notes,
+      ...(body.characterName !== undefined ? { characterName: body.characterName || null } : {}),
     },
     include: { member: { include: { person: true } }, location: true },
   });

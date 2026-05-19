@@ -125,7 +125,10 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
                 <View key={entry.id} style={styles.row}>
                   <View style={styles.nameCol}>
                     <Text style={styles.nameText}>{entry.member.person?.name ?? "—"}</Text>
-                    <Text style={styles.roleText}>{entry.member.roleTitle}</Text>
+                    {entry.member.department === "CAST"
+                      ? <Text style={styles.roleText}>{entry.characterName ?? entry.member.characterName ?? ""}</Text>
+                      : <Text style={styles.roleText}>{entry.member.roleTitle}</Text>
+                    }
                   </View>
                   <Text style={styles.timeCol}>{entry.startTime} - {entry.endTime}</Text>
                   <Text style={styles.activityCol}>{entry.activity}</Text>

@@ -218,20 +218,32 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
             </div>
             {(production.stageManagerName || production.asstStageManagerName) && (
-              <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {production.stageManagerName && (
-                  <p>
-                    <span className="font-medium">Direzione di scena:</span> {production.stageManagerName}
-                    {production.stageManagerEmail && <> · <a href={`mailto:${production.stageManagerEmail}`} className="hover:text-primary">{production.stageManagerEmail}</a></>}
-                    {production.stageManagerPhone && <> · {production.stageManagerPhone}</>}
-                  </p>
+                  <div className="flex items-center gap-2.5 rounded-lg border bg-muted/30 px-3 py-2 text-xs">
+                    <span className="text-muted-foreground font-medium uppercase tracking-wide text-[10px]">Dir. di scena</span>
+                    <span className="w-px h-3 bg-border" />
+                    <span className="font-medium text-foreground/90">{production.stageManagerName}</span>
+                    {production.stageManagerEmail && (
+                      <a href={`mailto:${production.stageManagerEmail}`} className="text-muted-foreground hover:text-primary transition-colors">{production.stageManagerEmail}</a>
+                    )}
+                    {production.stageManagerPhone && (
+                      <a href={`tel:${production.stageManagerPhone}`} className="text-muted-foreground hover:text-primary transition-colors">{production.stageManagerPhone}</a>
+                    )}
+                  </div>
                 )}
                 {production.asstStageManagerName && (
-                  <p>
-                    <span className="font-medium">Assistente:</span> {production.asstStageManagerName}
-                    {production.asstStageManagerEmail && <> · <a href={`mailto:${production.asstStageManagerEmail}`} className="hover:text-primary">{production.asstStageManagerEmail}</a></>}
-                    {production.asstStageManagerPhone && <> · {production.asstStageManagerPhone}</>}
-                  </p>
+                  <div className="flex items-center gap-2.5 rounded-lg border bg-muted/30 px-3 py-2 text-xs">
+                    <span className="text-muted-foreground font-medium uppercase tracking-wide text-[10px]">Assistente</span>
+                    <span className="w-px h-3 bg-border" />
+                    <span className="font-medium text-foreground/90">{production.asstStageManagerName}</span>
+                    {production.asstStageManagerEmail && (
+                      <a href={`mailto:${production.asstStageManagerEmail}`} className="text-muted-foreground hover:text-primary transition-colors">{production.asstStageManagerEmail}</a>
+                    )}
+                    {production.asstStageManagerPhone && (
+                      <a href={`tel:${production.asstStageManagerPhone}`} className="text-muted-foreground hover:text-primary transition-colors">{production.asstStageManagerPhone}</a>
+                    )}
+                  </div>
                 )}
               </div>
             )}

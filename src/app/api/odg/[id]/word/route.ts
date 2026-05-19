@@ -171,7 +171,12 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
                 margins: { top: 60, bottom: 60, left: 80, right: 80 },
                 children: [
                   new Paragraph({ children: [new TextRun({ text: entry.member.person?.name ?? "—", bold: true, size: 18 })] }),
-                  new Paragraph({ children: [new TextRun({ text: entry.member.roleTitle, italics: true, size: 15, color: "666666" })] }),
+                  new Paragraph({ children: [new TextRun({
+                    text: entry.member.department === "CAST"
+                      ? (entry.characterName ?? entry.member.characterName ?? "")
+                      : entry.member.roleTitle,
+                    italics: true, size: 15, color: "666666",
+                  })] }),
                 ],
               }),
               dataCell(`${entry.startTime} – ${entry.endTime}`),

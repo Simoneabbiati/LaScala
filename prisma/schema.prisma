@@ -112,6 +112,7 @@ model OdgEntry {
   locationId       String?
   location         Location?        @relation(fields: [locationId], references: [id])
   notes            String?
+  characterName    String?
   sortOrder        Int              @default(0)
 }
 
