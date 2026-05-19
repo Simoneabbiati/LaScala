@@ -94,17 +94,21 @@ export default function OperaTitleInput({
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      {/* Ghost text layer */}
+    <div
+      ref={containerRef}
+      className="relative rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent"
+    >
+      {/* Ghost text layer — behind the input */}
       <div
         aria-hidden
-        className="pointer-events-none select-none absolute inset-0 flex items-center rounded-md px-3 text-sm overflow-hidden whitespace-pre"
+        className="pointer-events-none select-none absolute inset-0 flex items-center px-3 text-sm overflow-hidden"
+        style={{ fontFamily: "inherit", whiteSpace: "pre" }}
       >
         <span style={{ visibility: "hidden" }}>{value}</span>
         <span className="text-muted-foreground/40">{ghost}</span>
       </div>
 
-      {/* Input */}
+      {/* Input — transparent so ghost shows through */}
       <input
         value={value}
         required={required}
@@ -112,8 +116,7 @@ export default function OperaTitleInput({
         onKeyDown={handleKeyDown}
         onFocus={() => candidates.length > 0 && setShowDropdown(true)}
         placeholder={placeholder}
-        className="w-full bg-transparent border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-        style={{ background: "hsl(var(--background))" }}
+        className="relative w-full bg-transparent px-3 py-2 text-sm outline-none"
         autoComplete="off"
       />
 
