@@ -257,7 +257,7 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                                 onClick={() => setEditState({ ...editState, logoUrl: r.thumbnail! })}
                                 className={`rounded-lg overflow-hidden border-2 transition-colors ${editState.logoUrl === r.thumbnail ? "border-primary" : "border-transparent hover:border-border"}`}
                               >
-                                <Image src={r.thumbnail} alt={r.title} width={96} height={96} className="object-cover" />
+                                <Image src={r.thumbnail!} alt={r.title} width={96} height={96} className="object-cover" />
                                 <p className="text-xs text-center p-1 max-w-24 truncate">{r.title}</p>
                               </button>
                             ))}
