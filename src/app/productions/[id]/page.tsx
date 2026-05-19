@@ -133,20 +133,21 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     return next;
   });
 
-  if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
-
-  const productionCustomDepts = [...new Set(
-    production.members.map((m) => m.department).filter((d) => !DEPT_ORDER.includes(d))
-  )];
+  const productionCustomDepts = production
+    ? [...new Set(production.members.map((m) => m.department).filter((d) => !DEPT_ORDER.includes(d)))]
+    : [];
   const fullDeptOrder = [...DEPT_ORDER, ...productionCustomDepts];
-  const membersByDept = fullDeptOrder.reduce<Record<string, Member[]>>((acc, dept) => {
-    acc[dept] = production.members.filter((m) => m.department === dept);
-    return acc;
-  }, {});
-
-  const hasRoster = production.members.length > 0;
-
+  const membersByDept = useMemo(() =>
+    fullDeptOrder.reduce<Record<string, Member[]>>((acc, dept) => {
+      acc[dept] = (production?.members ?? []).filter((m) => m.department === dept);
+      return acc;
+    }, {}),
+  // fullDeptOrder changes identity each render but is derived from production — production is the real dep
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  [production]);
+
+  const hasRoster = (production?.members.length ?? 0) > 0;
+
   const filteredMembersByDept = useMemo(() => {
     const q = rosterSearch.toLowerCase().trim();
     if (!q) return membersByDept;
@@ -158,7 +159,10 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
       );
       return acc;
     }, {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [membersByDept, rosterSearch]);
+
+  if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
 
   return (
     <div className="space-y-6">
