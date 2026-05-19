@@ -149,6 +149,17 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     }, 600);
   };
 
+  const flushAndExport = async (url: string, newTab = false) => {
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
+    await fetch(`/api/odg/${odgId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: notesValue, extraEvents: extraEventsValue }),
+    });
+    if (newTab) window.open(url, "_blank");
+    else window.location.href = url;
+  };
+
   if (!odg) return <div className="text-muted-foreground">Caricamento...</div>;
 
   const { production } = odg;
@@ -200,12 +211,12 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             </div>
             {/* Export buttons */}
             <div className="flex gap-1.5">
-              <Link href={`/api/odg/${odgId}/pdf`} target="_blank" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+              <button onClick={() => flushAndExport(`/api/odg/${odgId}/pdf`, true)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
                 <FileDown size={14} /> PDF
-              </Link>
-              <Link href={`/api/odg/${odgId}/word`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+              </button>
+              <button onClick={() => flushAndExport(`/api/odg/${odgId}/word`)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
                 <FileText size={14} /> Word
-              </Link>
+              </button>
             </div>
           </div>
         </div>

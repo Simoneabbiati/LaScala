@@ -20,9 +20,16 @@ export default function NewProductionPage() {
     theatreId: "",
     startDate: "",
     endDate: "",
+    stageManagerName: "",
+    stageManagerEmail: "",
+    stageManagerPhone: "",
+    asstStageManagerName: "",
+    asstStageManagerEmail: "",
+    asstStageManagerPhone: "",
   });
   const [castSlots, setCastSlots] = useState<CastSlot[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/theatres").then((r) => r.json()).then(setTheatres);
@@ -46,6 +53,7 @@ export default function NewProductionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const res = await fetch("/api/productions", {
       method: "POST",
@@ -53,6 +61,11 @@ export default function NewProductionPage() {
       body: JSON.stringify(form),
     });
     const production = await res.json();
+    if (!res.ok) {
+      setError(production?.error ?? "Errore sconosciuto");
+      setLoading(false);
+      return;
+    }
 
     // Create placeholder cast members (no person assigned yet)
     if (castSlots.length > 0) {
@@ -93,6 +106,7 @@ export default function NewProductionPage() {
           <CardTitle className="text-base">Dati dell&apos;opera</CardTitle>
         </CardHeader>
         <CardContent>
+          {error && <p className="text-sm text-destructive border border-destructive/30 rounded-md px-3 py-2">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Titolo *</label>
@@ -166,6 +180,65 @@ export default function NewProductionPage() {
                     setForm({ ...form, endDate: e.target.value })
                   }
                 />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <p className="text-sm font-medium text-foreground/70 border-t pt-3">Direzione di scena</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Nome</label>
+                  <Input
+                    value={form.stageManagerName}
+                    onChange={(e) => setForm({ ...form, stageManagerName: e.target.value })}
+                    placeholder="Michele Pignolo"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    type="email"
+                    value={form.stageManagerEmail}
+                    onChange={(e) => setForm({ ...form, stageManagerEmail: e.target.value })}
+                    placeholder="email@esempio.it"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Telefono</label>
+                  <Input
+                    value={form.stageManagerPhone}
+                    onChange={(e) => setForm({ ...form, stageManagerPhone: e.target.value })}
+                    placeholder="+39 334 7118654"
+                  />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-foreground/70">Assistente Direzione di Scena (opzionale)</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Nome</label>
+                  <Input
+                    value={form.asstStageManagerName}
+                    onChange={(e) => setForm({ ...form, asstStageManagerName: e.target.value })}
+                    placeholder="Chiara Villa"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    type="email"
+                    value={form.asstStageManagerEmail}
+                    onChange={(e) => setForm({ ...form, asstStageManagerEmail: e.target.value })}
+                    placeholder="email@esempio.it"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Telefono</label>
+                  <Input
+                    value={form.asstStageManagerPhone}
+                    onChange={(e) => setForm({ ...form, asstStageManagerPhone: e.target.value })}
+                    placeholder="+39 380 8975881"
+                  />
+                </div>
               </div>
             </div>
 

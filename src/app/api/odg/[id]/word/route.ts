@@ -236,6 +236,24 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     }));
   }
 
+  // ── Stage manager ──
+  const { stageManagerName, stageManagerEmail, stageManagerPhone, asstStageManagerName, asstStageManagerEmail, asstStageManagerPhone } = odg.production;
+  if (stageManagerName || asstStageManagerName) {
+    children.push(new Paragraph({ spacing: { before: 320 }, border: { top: { style: BorderStyle.SINGLE, size: 4, color: "DDDDDD" } } }));
+    if (stageManagerName) {
+      const runs: TextRun[] = [new TextRun({ text: "Direzione di scena/Stage manager: ", bold: true, size: 16, color: "555555" }), new TextRun({ text: stageManagerName, size: 16 })];
+      if (stageManagerEmail) runs.push(new TextRun({ text: ` | ${stageManagerEmail}`, size: 16 }));
+      if (stageManagerPhone) runs.push(new TextRun({ text: ` | ${stageManagerPhone}`, size: 16 }));
+      children.push(new Paragraph({ children: runs, alignment: AlignmentType.CENTER, spacing: { before: 80, after: 40 } }));
+    }
+    if (asstStageManagerName) {
+      const runs: TextRun[] = [new TextRun({ text: "Assistente Direzione di Scena/Assistant Stage Manager: ", bold: true, size: 16, color: "555555" }), new TextRun({ text: asstStageManagerName, size: 16 })];
+      if (asstStageManagerEmail) runs.push(new TextRun({ text: ` | ${asstStageManagerEmail}`, size: 16 }));
+      if (asstStageManagerPhone) runs.push(new TextRun({ text: ` | ${asstStageManagerPhone}`, size: 16 }));
+      children.push(new Paragraph({ children: runs, alignment: AlignmentType.CENTER, spacing: { before: 40, after: 80 } }));
+    }
+  }
+
   const doc = new Document({
     sections: [{
       properties: {},

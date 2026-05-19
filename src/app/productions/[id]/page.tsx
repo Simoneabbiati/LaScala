@@ -17,7 +17,7 @@ type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type TheatreOption = { id: string; name: string; city: string };
 type Odg = { id: string; date: string; status?: string | null };
-type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[] };
+type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[]; stageManagerName?: string; stageManagerEmail?: string; stageManagerPhone?: string; asstStageManagerName?: string; asstStageManagerEmail?: string; asstStageManagerPhone?: string };
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 
@@ -36,7 +36,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
   const [showProdEdit, setShowProdEdit] = useState(false);
-  const [prodEditForm, setProdEditForm] = useState({ title: "", composer: "", theatreId: "", startDate: "", endDate: "" });
+  const [prodEditForm, setProdEditForm] = useState({ title: "", composer: "", theatreId: "", startDate: "", endDate: "", stageManagerName: "", stageManagerEmail: "", stageManagerPhone: "", asstStageManagerName: "", asstStageManagerEmail: "", asstStageManagerPhone: "" });
   const [theatreOptions, setTheatreOptions] = useState<TheatreOption[]>([]);
 
   const load = () => fetch(`/api/productions/${id}`).then((r) => r.json()).then(setProduction);
@@ -54,6 +54,12 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
       theatreId: production.theatre.id,
       startDate: production.startDate ? production.startDate.slice(0, 10) : "",
       endDate: production.endDate ? production.endDate.slice(0, 10) : "",
+      stageManagerName: production.stageManagerName ?? "",
+      stageManagerEmail: production.stageManagerEmail ?? "",
+      stageManagerPhone: production.stageManagerPhone ?? "",
+      asstStageManagerName: production.asstStageManagerName ?? "",
+      asstStageManagerEmail: production.asstStageManagerEmail ?? "",
+      asstStageManagerPhone: production.asstStageManagerPhone ?? "",
     });
     setShowProdEdit(true);
   };
@@ -166,36 +172,70 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                 </FormField>
               </div>
             </div>
+            <div className="col-span-2 border-t pt-3 space-y-3">
+              <p className="text-sm font-medium text-foreground/70">Direzione di scena</p>
+              <div className="grid grid-cols-3 gap-2">
+                <FormField label="Nome"><Input value={prodEditForm.stageManagerName} onChange={(e) => setProdEditForm({ ...prodEditForm, stageManagerName: e.target.value })} placeholder="Nome" /></FormField>
+                <FormField label="Email"><Input type="email" value={prodEditForm.stageManagerEmail} onChange={(e) => setProdEditForm({ ...prodEditForm, stageManagerEmail: e.target.value })} placeholder="email@esempio.it" /></FormField>
+                <FormField label="Telefono"><Input value={prodEditForm.stageManagerPhone} onChange={(e) => setProdEditForm({ ...prodEditForm, stageManagerPhone: e.target.value })} placeholder="+39 334..." /></FormField>
+              </div>
+              <p className="text-sm font-medium text-foreground/70">Assistente Direzione di Scena</p>
+              <div className="grid grid-cols-3 gap-2">
+                <FormField label="Nome"><Input value={prodEditForm.asstStageManagerName} onChange={(e) => setProdEditForm({ ...prodEditForm, asstStageManagerName: e.target.value })} placeholder="Nome" /></FormField>
+                <FormField label="Email"><Input type="email" value={prodEditForm.asstStageManagerEmail} onChange={(e) => setProdEditForm({ ...prodEditForm, asstStageManagerEmail: e.target.value })} placeholder="email@esempio.it" /></FormField>
+                <FormField label="Telefono"><Input value={prodEditForm.asstStageManagerPhone} onChange={(e) => setProdEditForm({ ...prodEditForm, asstStageManagerPhone: e.target.value })} placeholder="+39 380..." /></FormField>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm"><Check size={13} /> Salva</Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => setShowProdEdit(false)}><X size={13} /> Annulla</Button>
             </div>
           </form>
         ) : (
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                {production.composer && (
-                  <span className="font-medium text-foreground/70">{production.composer}</span>
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <h1 className="text-2xl font-bold tracking-tight">{production.title}</h1>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                  {production.composer && (
+                    <span className="font-medium text-foreground/70">{production.composer}</span>
+                  )}
+                  {production.composer && <span className="text-border">|</span>}
+                  <span>{production.theatre.name} · {production.theatre.city}</span>
+                  {production.startDate && (
+                    <>
+                      <span className="text-border">|</span>
+                      <span>
+                        {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                        {production.endDate && (
+                          <> &rarr; {new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</>
+                        )}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
+            </div>
+            {(production.stageManagerName || production.asstStageManagerName) && (
+              <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
+                {production.stageManagerName && (
+                  <p>
+                    <span className="font-medium">Direzione di scena:</span> {production.stageManagerName}
+                    {production.stageManagerEmail && <> · <a href={`mailto:${production.stageManagerEmail}`} className="hover:text-primary">{production.stageManagerEmail}</a></>}
+                    {production.stageManagerPhone && <> · {production.stageManagerPhone}</>}
+                  </p>
                 )}
-                {production.composer && <span className="text-border">|</span>}
-                <span>{production.theatre.name} · {production.theatre.city}</span>
-                {production.startDate && (
-                  <>
-                    <span className="text-border">|</span>
-                    <span>
-                      {new Date(production.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
-                      {production.endDate && (
-                        <> &rarr; {new Date(production.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</>
-                      )}
-                    </span>
-                  </>
+                {production.asstStageManagerName && (
+                  <p>
+                    <span className="font-medium">Assistente:</span> {production.asstStageManagerName}
+                    {production.asstStageManagerEmail && <> · <a href={`mailto:${production.asstStageManagerEmail}`} className="hover:text-primary">{production.asstStageManagerEmail}</a></>}
+                    {production.asstStageManagerPhone && <> · {production.asstStageManagerPhone}</>}
+                  </p>
                 )}
               </div>
-            </div>
-            <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
-          </div>
+            )}
+          </>
         )}
       </div>
 

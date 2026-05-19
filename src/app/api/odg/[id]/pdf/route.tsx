@@ -19,7 +19,7 @@ const lighten = (hex: string): string => {
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 9, padding: 30, paddingBottom: 40 },
+  page: { fontFamily: "Helvetica", fontSize: 9, padding: 30, paddingBottom: 60 },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16, borderBottom: "1 solid #ddd", paddingBottom: 10 },
   headerLeft: { flexDirection: "column" },
   theatreName: { fontSize: 11, fontFamily: "Helvetica-Bold" },
@@ -40,8 +40,10 @@ const styles = StyleSheet.create({
   timeCol: { width: "18%", fontSize: 9 },
   activityCol: { width: "32%", fontSize: 9 },
   locationCol: { width: "22%", fontSize: 9, color: "#555" },
-  footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 4, flexDirection: "row", justifyContent: "space-between" },
+  footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 4 },
+  footerRow: { flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: "#aaa" },
+  footerStageManager: { fontSize: 7, color: "#555", textAlign: "center", marginTop: 3 },
   notesSection: { marginTop: 16, marginBottom: 8 },
   notesSectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#555555", marginBottom: 6, textAlign: "center" },
   notesBox: { border: "1 solid #ddd", padding: 8, minHeight: 40, fontSize: 9 },
@@ -156,8 +158,30 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{odg.production.title} · ODG {dateLabel}</Text>
-          <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>{odg.production.title} · ODG {dateLabel}</Text>
+            <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          </View>
+          {(odg.production.stageManagerName || odg.production.asstStageManagerName) && (
+            <View>
+              {odg.production.stageManagerName && (
+                <Text style={styles.footerStageManager}>
+                  {"Direzione di scena/Stage manager: "}
+                  {odg.production.stageManagerName}
+                  {odg.production.stageManagerEmail ? ` | ${odg.production.stageManagerEmail}` : ""}
+                  {odg.production.stageManagerPhone ? ` | ${odg.production.stageManagerPhone}` : ""}
+                </Text>
+              )}
+              {odg.production.asstStageManagerName && (
+                <Text style={styles.footerStageManager}>
+                  {"Assistente Direzione di Scena/Assistant Stage Manager: "}
+                  {odg.production.asstStageManagerName}
+                  {odg.production.asstStageManagerEmail ? ` | ${odg.production.asstStageManagerEmail}` : ""}
+                  {odg.production.asstStageManagerPhone ? ` | ${odg.production.asstStageManagerPhone}` : ""}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       </Page>
     </Document>

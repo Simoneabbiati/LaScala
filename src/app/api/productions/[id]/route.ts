@@ -26,6 +26,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       theatreId: body.theatreId,
       startDate: body.startDate ? new Date(body.startDate) : null,
       endDate: body.endDate ? new Date(body.endDate) : null,
+      stageManagerName: body.stageManagerName ?? undefined,
+      stageManagerEmail: body.stageManagerEmail ?? undefined,
+      stageManagerPhone: body.stageManagerPhone ?? undefined,
+      asstStageManagerName: body.asstStageManagerName ?? undefined,
+      asstStageManagerEmail: body.asstStageManagerEmail ?? undefined,
+      asstStageManagerPhone: body.asstStageManagerPhone ?? undefined,
     },
     include: { theatre: true },
   });

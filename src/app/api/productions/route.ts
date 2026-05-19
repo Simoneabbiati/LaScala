@@ -14,16 +14,27 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const production = await prisma.production.create({
-    data: {
-      title: body.title,
-      composer: body.composer,
-      theatreId: body.theatreId,
-      startDate: body.startDate ? new Date(body.startDate) : undefined,
-      endDate: body.endDate ? new Date(body.endDate) : undefined,
-    },
-    include: { theatre: true },
-  });
-  return NextResponse.json(production, { status: 201 });
+  try {
+    const body = await req.json();
+    const production = await prisma.production.create({
+      data: {
+        title: body.title,
+        composer: body.composer || null,
+        theatreId: body.theatreId,
+        startDate: body.startDate ? new Date(body.startDate) : null,
+        endDate: body.endDate ? new Date(body.endDate) : null,
+        stageManagerName: body.stageManagerName || null,
+        stageManagerEmail: body.stageManagerEmail || null,
+        stageManagerPhone: body.stageManagerPhone || null,
+        asstStageManagerName: body.asstStageManagerName || null,
+        asstStageManagerEmail: body.asstStageManagerEmail || null,
+        asstStageManagerPhone: body.asstStageManagerPhone || null,
+      },
+      include: { theatre: true },
+    });
+    return NextResponse.json(production, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/productions]", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id },
     data: { name: body.name, city: body.city, logoUrl: body.logoUrl },
   });
-  revalidateTag("theatres");
+  revalidateTag("theatres", {});
   return NextResponse.json(theatre);
 }
 
@@ -27,6 +27,6 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { revalidateTag } = await import("next/cache");
   const { id } = await params;
   await prisma.theatre.delete({ where: { id } });
-  revalidateTag("theatres");
+  revalidateTag("theatres", {});
   return NextResponse.json({ ok: true });
 }

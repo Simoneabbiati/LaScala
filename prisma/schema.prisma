@@ -32,11 +32,17 @@ model Production {
   composer    String?
   theatreId   String
   theatre     Theatre            @relation(fields: [theatreId], references: [id], onDelete: Cascade)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime           @default(now())
-  members     ProductionMember[]
-  odgs        Odg[]
+  startDate             DateTime?
+  endDate               DateTime?
+  stageManagerName      String?
+  stageManagerEmail     String?
+  stageManagerPhone     String?
+  asstStageManagerName  String?
+  asstStageManagerEmail String?
+  asstStageManagerPhone String?
+  createdAt             DateTime           @default(now())
+  members               ProductionMember[]
+  odgs                  Odg[]
 }
 
 // Department enum stored as String in SQLite
