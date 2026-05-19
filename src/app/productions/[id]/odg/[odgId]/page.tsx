@@ -585,11 +585,13 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                           const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (deptLabel[dept] ?? dept));
                           return (
                             <optgroup key={dept} label={label}>
-                              {members
-                                .filter((m) => isExtras || m.person)
-                                .map((m) => (
+                              {members.map((m) => (
                                   <option key={m.id} value={m.id}>
-                                    {isExtras ? m.roleTitle : `${m.person!.name}${m.characterName ? ` — ${m.characterName}` : ""}${m.department === "CAST" ? ` (${m.roleTitle})` : ""}`}
+                                    {isExtras
+                                      ? m.roleTitle
+                                      : m.person
+                                        ? `${m.person.name}${m.characterName ? ` — ${m.characterName}` : ""}${m.department === "CAST" ? ` (${m.roleTitle})` : ""}`
+                                        : m.roleTitle}
                                   </option>
                                 ))}
                             </optgroup>
