@@ -408,9 +408,9 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                       );
                     }
                     return (
-                      <div key={s.id} className="group flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
-                        <span className="font-mono text-muted-foreground text-xs shrink-0">{s.startTime} – {s.endTime}</span>
-                        <span className="font-medium truncate flex-1">{s.activity}</span>
+                      <div key={s.id} className="group flex items-start gap-2 text-sm rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                        <span className="font-mono text-muted-foreground text-xs shrink-0 pt-px">{s.startTime} – {s.endTime}</span>
+                        <span className="font-medium flex-1 break-words min-w-0">{s.activity}</span>
                         {!showLocationHeaders && s.location && <span className="text-muted-foreground text-xs shrink-0">({s.location.name})</span>}
                         <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
