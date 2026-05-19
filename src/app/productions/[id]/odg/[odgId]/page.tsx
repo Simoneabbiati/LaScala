@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, use } from "react";
+import React, { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
@@ -48,10 +48,14 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const latestNotes = useRef("");
   const latestExtraEvents = useRef("");
 
-  const [departments, setDepartments] = useState<{ value: string; label: string; color: string }[]>([]);
-  const deptOrder = departments.map((d) => d.value);
+  const [departments, setDepartments] = useState<{ value: string; label: string; color: string; linkedToDept: string | null }[]>([]);
+  const deptOrder = departments.filter((d) => !d.linkedToDept).map((d) => d.value);
   const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
   const deptBg: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, `${d.color}44`]));
+  const linkedByParent = departments.reduce<Record<string, { value: string; label: string; color: string }[]>>((acc, d) => {
+    if (d.linkedToDept) { (acc[d.linkedToDept] ??= []).push(d); }
+    return acc;
+  }, {});
 
   const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => {
     setOdg(data);
@@ -478,7 +482,9 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
             if (dept === "CAST_EXTRAS") return null;
             const entries = entriesByDept[dept] ?? [];
             const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
-            if (!entries.length && !extrasEntries.length) return null;
+            const linked = linkedByParent[dept] ?? [];
+            const linkedEntries = linked.flatMap((ld) => entriesByDept[ld.value] ?? []);
+            if (!entries.length && !extrasEntries.length && !linkedEntries.length) return null;
 
             const deptSectionLabel = dept === "CAST" ? "Compagnia" : (deptLabel[dept] ?? dept);
             const deptSectionBg = deptBg[dept] ?? "#e5e5e544";
@@ -577,6 +583,19 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                     </Table>
                   </>
                 )}
+                {linked.map((ld) => {
+                  const ldEntries = entriesByDept[ld.value] ?? [];
+                  if (!ldEntries.length) return null;
+                  return (
+                    <React.Fragment key={ld.value}>
+                      <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">{ld.label}</div>
+                      <Table>
+                        <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                        <TableBody>{ldEntries.map((e) => entryRow(e, false))}</TableBody>
+                      </Table>
+                    </React.Fragment>
+                  );
+                })}
               </Card>
             );
           })}
