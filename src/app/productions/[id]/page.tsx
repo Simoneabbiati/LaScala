@@ -146,8 +146,6 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [production]);
 
-  const hasRoster = (production?.members.length ?? 0) > 0;
-
   const filteredMembersByDept = useMemo(() => {
     const q = rosterSearch.toLowerCase().trim();
     if (!q) return membersByDept;
@@ -283,38 +281,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      {/* Workflow stepper */}
-      <div className="flex items-center gap-4 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-        <div className="flex items-center gap-2">
-          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors ${hasRoster ? "bg-success/20 text-success-foreground" : "bg-primary text-primary-foreground"}`}>
-            {hasRoster ? <Check size={12} /> : "1"}
-          </span>
-          <span className={`font-medium transition-colors ${hasRoster ? "text-muted-foreground" : "text-foreground"}`}>
-            Roster
-            {hasRoster && (
-              <span className="ml-1 font-normal text-muted-foreground">
-                · {production.members.length} {production.members.length === 1 ? "persona" : "persone"}
-              </span>
-            )}
-          </span>
-        </div>
-        <ChevronRight size={14} className="text-muted-foreground shrink-0" />
-        <div className="flex items-center gap-2">
-          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors ${hasRoster ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-            2
-          </span>
-          <span className={`font-medium transition-colors ${hasRoster ? "text-foreground" : "text-muted-foreground"}`}>
-            Ordini del Giorno
-          </span>
-        </div>
-        {!hasRoster && (
-          <span className="ml-auto text-xs text-muted-foreground italic">
-            Aggiungi le persone al Roster per iniziare a creare gli ODG
-          </span>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
+<div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
         {/* Roster — LEFT */}
         <div className="flex flex-col min-h-0 gap-3">
           <div className="flex items-center justify-between">
