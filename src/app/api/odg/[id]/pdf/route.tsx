@@ -42,6 +42,9 @@ const styles = StyleSheet.create({
   locationCol: { width: "22%", fontSize: 9, color: "#555" },
   footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 4, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: "#aaa" },
+  notesSection: { marginTop: 16, marginBottom: 8 },
+  notesSectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#555555", marginBottom: 6, textAlign: "center" },
+  notesBox: { border: "1 solid #ddd", padding: 8, minHeight: 40, fontSize: 9 },
 });
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -130,6 +133,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
             </View>
           );
         })}
+
+        {/* Extra events */}
+        {odg.extraEvents && (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesSectionTitle}>EVENTI COLLATERALI / EXTRAS</Text>
+            <View style={styles.notesBox}>
+              <Text>{odg.extraEvents}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Note */}
+        {odg.notes && (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesSectionTitle}>NOTE / NOTES</Text>
+            <View style={styles.notesBox}>
+              <Text>{odg.notes}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer} fixed>

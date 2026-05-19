@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
@@ -19,7 +19,7 @@ type OdgEntry = { id: string; startTime: string; endTime: string; activity: stri
 type OdgSession = { id: string; startTime: string; endTime: string; activity: string; location?: Location };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type Production = { id: string; title: string; composer?: string; theatre: Theatre; members: Member[] };
-type OdgFull = { id: string; date: string; status?: string | null; notes?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
+type OdgFull = { id: string; date: string; status?: string | null; notes?: string; extraEvents?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
 
 const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "" });
@@ -40,8 +40,12 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const [editSession, setEditSession] = useState<SessionEdit | null>(null);
   const [editEntry, setEditEntry] = useState<EntryEdit | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
+  const [notesValue, setNotesValue] = useState("");
+  const [extraEventsValue, setExtraEventsValue] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
+  const [showExtraEvents, setShowExtraEvents] = useState(false);
 
-  const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then(setOdg);
+  const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => { setOdg(data); setNotesValue(data.notes ?? ""); setExtraEventsValue(data.extraEvents ?? ""); setShowNotes(!!data.notes); setShowExtraEvents(!!data.extraEvents); });
   useEffect(() => { load(); }, [odgId]);
 
   const setStatus = async (status: string | null) => {
@@ -116,6 +120,33 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
       endTime: match?.endTime ?? prev.endTime,
       locationId: match?.location?.id ?? "",
     }));
+  };
+
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const extraEventsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleNotesChange = (value: string) => {
+    setNotesValue(value);
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = setTimeout(async () => {
+      await fetch(`/api/odg/${odgId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: value }),
+      });
+      if (!value.trim()) setShowNotes(false);
+    }, 600);
+  };
+
+  const handleExtraEventsChange = (value: string) => {
+    setExtraEventsValue(value);
+    if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
+    extraEventsTimer.current = setTimeout(async () => {
+      await fetch(`/api/odg/${odgId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extraEvents: value }),
+      });
+      if (!value.trim()) setShowExtraEvents(false);
+    }, 600);
   };
 
   if (!odg) return <div className="text-muted-foreground">Caricamento...</div>;
@@ -437,6 +468,52 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           })}
         </div>
 
+        </CardContent>
+      </Card>
+
+      {/* Eventi collaterali */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Eventi collaterali</CardTitle>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-3 space-y-2">
+          {showExtraEvents && (
+            <textarea
+              autoFocus
+              value={extraEventsValue}
+              onChange={(e) => handleExtraEventsChange(e.target.value)}
+              placeholder="Es. OPERA INTRO ore 15.00 in Foyer Erker - Moderatore: Diego Villegas"
+              rows={4}
+              className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          )}
+          <button onClick={() => setShowExtraEvents(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
+            <Plus size={13} /> Aggiungi evento collaterale
+          </button>
+        </CardContent>
+      </Card>
+
+      {/* Note */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Note</CardTitle>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-3 space-y-2">
+          {showNotes && (
+            <textarea
+              autoFocus
+              value={notesValue}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder="Scrivi una nota..."
+              rows={4}
+              className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          )}
+          <button onClick={() => setShowNotes(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1">
+            <Plus size={13} /> Aggiungi nota
+          </button>
         </CardContent>
       </Card>
     </div>

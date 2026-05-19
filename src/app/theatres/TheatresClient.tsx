@@ -187,7 +187,7 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                     <TooltipProvider>
                     <div className="flex gap-1 shrink-0">
                       <Tooltip>
-                        <TooltipTrigger >
+                        <TooltipTrigger render={<span />}>
                           <Button variant="ghost" size="icon" onClick={() => setShowAddLocation((prev) => ({ ...prev, [t.id]: !prev[t.id] }))}>
                             <Plus size={14} />
                           </Button>
@@ -195,7 +195,7 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                         <TooltipContent>Aggiungi sala</TooltipContent>
                       </Tooltip>
                       <Tooltip>
-                        <TooltipTrigger >
+                        <TooltipTrigger render={<span />}>
                           <Button variant="ghost" size="icon" onClick={() => {
                             setEditState({ id: t.id, name: t.name, city: t.city, logoUrl: t.logoUrl ?? "" });
                             setWikiResults([]);
@@ -206,7 +206,7 @@ export default function TheatresClient({ initialTheatres }: { initialTheatres: T
                         <TooltipContent>Modifica teatro</TooltipContent>
                       </Tooltip>
                       <Tooltip>
-                        <TooltipTrigger >
+                        <TooltipTrigger render={<span />}>
                           <Button variant="ghost-destructive" size="icon" onClick={() => deleteTheatre(t)}>
                             <Trash2 size={15} />
                           </Button>

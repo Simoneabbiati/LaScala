@@ -35,7 +35,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const odg = await prisma.odg.update({
     where: { id },
     data: {
-      notes: body.notes,
+      ...(body.notes !== undefined ? { notes: body.notes || null } : {}),
+      ...(body.extraEvents !== undefined ? { extraEvents: body.extraEvents || null } : {}),
       ...(body.status !== undefined ? { status: body.status } : {}),
     },
   });

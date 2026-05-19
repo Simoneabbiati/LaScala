@@ -71,6 +71,7 @@ model Odg {
   date         DateTime
   status       String?      // null | "BOZZA" | "DEFINITIVO"
   notes        String?
+  extraEvents  String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   sessions     OdgSession[]
