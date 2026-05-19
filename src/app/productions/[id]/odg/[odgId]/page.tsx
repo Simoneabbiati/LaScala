@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
-import { ACTIVITIES, DEPT_BG, DEPT_LABEL } from "@/lib/constants";
+import { ACTIVITIES, DEPT_BG, DEPT_LABEL, DEPT_ORDER, EXTRAS_TYPES } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,13 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
-type Member = { id: string; department: string; roleTitle: string; characterName?: string; person: Person };
+type Member = { id: string; department: string; roleTitle: string; characterName?: string; person: Person | null };
 type OdgEntry = { id: string; startTime: string; endTime: string; activity: string; location?: Location; notes?: string; characterName?: string; member: Member };
 type OdgSession = { id: string; startTime: string; endTime: string; activity: string; location?: Location };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type Production = { id: string; title: string; composer?: string; theatre: Theatre; members: Member[] };
 type OdgFull = { id: string; date: string; status?: string | null; notes?: string; extraEvents?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
 
-const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "" });
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
@@ -165,6 +164,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const saveNotesNow = async (value: string) => {
     if (notesTimer.current) clearTimeout(notesTimer.current);
+    latestNotes.current = value;
     await fetch(`/api/odg/${odgId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notes: value }),
@@ -175,6 +175,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const saveExtraEventsNow = async (value: string) => {
     if (extraEventsTimer.current) clearTimeout(extraEventsTimer.current);
+    latestExtraEvents.current = value;
     await fetch(`/api/odg/${odgId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ extraEvents: value }),
@@ -204,7 +205,11 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const sessionActivities = odg.sessions.map((s) => ({ activity: s.activity, location: s.location }));
   const uniqueSessionActivities = sessionActivities.filter((a, i, arr) => arr.findIndex((b) => b.activity === a.activity) === i);
 
-  const entriesByDept = DEPT_ORDER.reduce<Record<string, OdgEntry[]>>((acc, dept) => {
+  const entryCustomDepts = [...new Set(
+    odg.entries.map((e) => e.member.department).filter((d) => !DEPT_ORDER.includes(d))
+  )];
+  const fullDeptOrder = [...DEPT_ORDER, ...entryCustomDepts];
+  const entriesByDept = fullDeptOrder.reduce<Record<string, OdgEntry[]>>((acc, dept) => {
     acc[dept] = odg.entries.filter((e) => e.member.department === dept);
     return acc;
   }, {});
@@ -407,20 +412,40 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                   setEntryForm({ ...entryForm, memberId: e.target.value, characterName: m?.characterName ?? "" });
                 }} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                   <option value="">Seleziona persona...</option>
-                  {DEPT_ORDER.map((dept) => {
+                  {fullDeptOrder.map((dept) => {
                     const members = production.members.filter((m) => m.department === dept);
                     if (!members.length) return null;
+                    const isExtras = dept === "CAST_EXTRAS";
+                    const label = dept === "CAST" ? "Solisti" : (dept === "CAST_EXTRAS" ? "Extras" : (DEPT_LABEL[dept] ?? dept));
                     return (
-                      <optgroup key={dept} label={DEPT_LABEL[dept]}>
-                        {members.filter((m) => m.person).map((m) => <option key={m.id} value={m.id}>{m.person.name}{m.characterName ? ` — ${m.characterName}` : ""}{m.department === "CAST" ? ` (${m.roleTitle})` : ""}</option>)}
+                      <optgroup key={dept} label={label}>
+                        {members
+                          .filter((m) => isExtras || m.person)
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {isExtras ? m.roleTitle : `${m.person!.name}${m.characterName ? ` — ${m.characterName}` : ""}${m.department === "CAST" ? ` (${m.roleTitle})` : ""}`}
+                            </option>
+                          ))}
                       </optgroup>
                     );
                   })}
                 </select>
               </FormField>
-              <FormField label="Personaggio">
-                <Input value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. Violetta" className="h-8 text-sm" />
-              </FormField>
+              {(() => {
+                const sel = production.members.find((m) => m.id === entryForm.memberId);
+                if (sel?.department === "CAST_EXTRAS") {
+                  return (
+                    <FormField label="Numero convocati">
+                      <Input type="number" min={1} value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. 15" className="h-8 text-sm" />
+                    </FormField>
+                  );
+                }
+                return (
+                  <FormField label="Personaggio">
+                    <Input value={entryForm.characterName} onChange={(e) => setEntryForm({ ...entryForm, characterName: e.target.value })} placeholder="Es. Violetta" className="h-8 text-sm" />
+                  </FormField>
+                );
+              })()}
               <FormField label="Luogo">
                 <select value={entryForm.locationId} onChange={(e) => setEntryForm({ ...entryForm, locationId: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                   <option value="">—</option>
@@ -443,86 +468,109 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         )}
 
         <div className="space-y-3">
-          {DEPT_ORDER.map((dept) => {
-            const entries = entriesByDept[dept];
-            if (!entries?.length) return null;
+          {fullDeptOrder.map((dept) => {
+            if (dept === "CAST_EXTRAS") return null;
+            const entries = entriesByDept[dept] ?? [];
+            const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
+            if (!entries.length && !extrasEntries.length) return null;
+
+            const deptLabel = dept === "CAST" ? "Compagnia" : (DEPT_LABEL[dept] ?? dept);
+            const deptBg = DEPT_BG[dept] ?? "#e5e5e544";
+            const showSolistiHeader = dept === "CAST" && extrasEntries.length > 0 && entries.length > 0;
+
+            const entryRow = (entry: OdgEntry, isExtras = false) => {
+              if (editEntry?.id === entry.id) {
+                return (
+                  <TableRow key={entry.id}>
+                    <TableCell colSpan={6}>
+                      <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium shrink-0">
+                          {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—")}
+                        </span>
+                        {isExtras ? (
+                          <Input type="number" min={1} value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Numero" className="h-7 w-20 text-sm" />
+                        ) : entry.member.department === "CAST" ? (
+                          <Input value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Personaggio" className="h-7 w-28 text-sm" />
+                        ) : null}
+                        <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
+                        <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
+                        <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
+                          {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
+                        </select>
+                        <select value={editEntry.locationId} onChange={(e) => setEditEntry({ ...editEntry, locationId: e.target.value })} className="w-32 border border-input rounded px-2 py-1 text-sm bg-background">
+                          <option value="">—</option>
+                          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                        {!isExtras && <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />}
+                        <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
+                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
+                      </form>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+              return (
+                <TableRow key={entry.id} className="group">
+                  <TableCell>
+                    {isExtras ? (
+                      <>
+                        <div className="font-medium text-sm">{entry.member.roleTitle}</div>
+                        {entry.characterName && <div className="text-xs text-muted-foreground">× {entry.characterName}</div>}
+                      </>
+                    ) : (
+                      <>
+                        <div className="font-medium text-sm">{entry.member.person?.name ?? "—"}</div>
+                        {entry.member.department === "CAST" ? (
+                          <div className="text-xs text-muted-foreground italic">{(entry.characterName ?? entry.member.characterName) || "—"}</div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+                        )}
+                      </>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
+                  <TableCell className="text-sm">{entry.activity}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{isExtras ? "—" : (entry.notes ?? "—")}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
+                        onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "", characterName: entry.characterName ?? entry.member.characterName ?? "" })}>
+                        <Pencil size={12} />
+                      </Button>
+                      <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
+                        onClick={() => deleteEntry(entry.id, isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—"))}>
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            };
+
             return (
               <Card key={dept} className="overflow-hidden">
-                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: DEPT_BG[dept] }}>
-                  {DEPT_LABEL[dept]}
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nominativo</TableHead>
-                      <TableHead>Orario</TableHead>
-                      <TableHead>Attività</TableHead>
-                      <TableHead>Luogo</TableHead>
-                      <TableHead>Note</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {entries.map((entry) => {
-                      if (editEntry?.id === entry.id) {
-                        return (
-                          <TableRow key={entry.id}>
-                            <TableCell colSpan={6}>
-                              <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium shrink-0">{entry.member.person.name}</span>
-                                {entry.member.department === "CAST" && (
-                                  <Input value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Personaggio" className="h-7 w-28 text-sm" />
-                                )}
-                                <Input type="time" value={editEntry.startTime} onChange={(e) => setEditEntry({ ...editEntry, startTime: e.target.value })} className="h-7 w-24 text-sm" />
-                                <Input type="time" value={editEntry.endTime} onChange={(e) => setEditEntry({ ...editEntry, endTime: e.target.value })} className="h-7 w-24 text-sm" />
-                                <select value={editEntry.activity} onChange={(e) => setEditEntry({ ...editEntry, activity: e.target.value })} className="flex-1 border border-input rounded px-2 py-1 text-sm bg-background">
-                                  {uniqueSessionActivities.map(({ activity }) => <option key={activity} value={activity}>{activity}</option>)}
-                                </select>
-                                <select value={editEntry.locationId} onChange={(e) => setEditEntry({ ...editEntry, locationId: e.target.value })} className="w-32 border border-input rounded px-2 py-1 text-sm bg-background">
-                                  <option value="">—</option>
-                                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                                </select>
-                                <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />
-                                <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
-                              </form>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      }
-                      return (
-                        <TableRow key={entry.id} className="group">
-                          <TableCell>
-                            <div className="font-medium text-sm">{entry.member.person.name}</div>
-                            {entry.member.department === "CAST" ? (
-                              <div className="text-xs text-muted-foreground italic">
-                                {(entry.characterName ?? entry.member.characterName) || "—"}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
-                          <TableCell className="text-sm">{entry.activity}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
-                                onClick={() => setEditEntry({ id: entry.id, startTime: entry.startTime, endTime: entry.endTime, activity: entry.activity, locationId: entry.location?.id ?? "", notes: entry.notes ?? "", characterName: entry.characterName ?? entry.member.characterName ?? "" })}>
-                                <Pencil size={12} />
-                              </Button>
-                              <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
-                                onClick={() => deleteEntry(entry.id, entry.member.person.name)}>
-                                <Trash2 size={12} />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptBg }}>{deptLabel}</div>
+                {entries.length > 0 && (
+                  <>
+                    {showSolistiHeader && (
+                      <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/20">Solisti</div>
+                    )}
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                      <TableBody>{entries.map((e) => entryRow(e, false))}</TableBody>
+                    </Table>
+                  </>
+                )}
+                {extrasEntries.length > 0 && (
+                  <>
+                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">Extras</div>
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead></TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                      <TableBody>{extrasEntries.map((e) => entryRow(e, true))}</TableBody>
+                    </Table>
+                  </>
+                )}
               </Card>
             );
           })}
