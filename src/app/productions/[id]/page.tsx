@@ -172,7 +172,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [membersByDept, rosterSearch]);
 
-  if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
+  if (!production || departments.length === 0) return <div className="text-muted-foreground">Caricamento...</div>;
 
   return (
     <div className="flex flex-col gap-4 h-[calc(100dvh-4rem)]">

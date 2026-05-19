@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
-import { ACTIVITIES, EXTRAS_TYPES } from "@/lib/constants";
+import { ACTIVITIES } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     load();
   };
 
-  const addSession = async (e: React.FormEvent<HTMLFormElement>) => {
+  const addSession = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     await fetch(`/api/odg/${odgId}/sessions`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -84,7 +84,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     load();
   };
 
-  const saveSession = async (e: React.FormEvent<HTMLFormElement>) => {
+  const saveSession = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!editSession) return;
     await fetch(`/api/odg/${odgId}/sessions/${editSession.id}`, {
@@ -100,7 +100,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     onConfirm: async () => { await fetch(`/api/odg/${odgId}/sessions/${id}`, { method: "DELETE" }); setConfirm(defaultConfirm); load(); },
   });
 
-  const addEntry = async (e: React.FormEvent<HTMLFormElement>) => {
+  const addEntry = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     await fetch(`/api/odg/${odgId}/entries`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -111,7 +111,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     load();
   };
 
-  const saveEntry = async (e: React.FormEvent<HTMLFormElement>) => {
+  const saveEntry = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!editEntry) return;
     await fetch(`/api/odg/${odgId}/entries/${editEntry.id}`, {
@@ -201,7 +201,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     else window.location.href = url;
   };
 
-  if (!odg) return <div className="text-muted-foreground">Caricamento...</div>;
+  if (!odg || departments.length === 0) return <div className="text-muted-foreground">Caricamento...</div>;
 
   const { production } = odg;
   const locations = production.theatre.locations;
