@@ -117,7 +117,10 @@ export default function CalendarClient({ initialProductions }: { initialProducti
                             `}
                           >
                             {p.showLabel && (
-                              <span className="truncate leading-none">{p.title}</span>
+                              <span className="truncate leading-none">
+                                {p.title}
+                                <span className="opacity-60 font-normal"> · {p.theatre.name}</span>
+                              </span>
                             )}
                           </div>
                         </Link>
@@ -138,6 +141,7 @@ export default function CalendarClient({ initialProductions }: { initialProducti
             <Link key={p.id} href={`/productions/${p.id}`} className="flex items-center gap-1.5 text-sm hover:underline">
               <span className={`w-3 h-3 rounded-sm ${p.color.bar}`} />
               <span>{p.title}</span>
+              <span className="text-muted-foreground text-xs">· {p.theatre.name}</span>
               {p.startStr && <span className="text-muted-foreground text-xs">({new Date(p.startStr).getFullYear()})</span>}
             </Link>
           ))}
