@@ -1,23 +1,48 @@
 import Link from "next/link";
-import { BookOpen, CalendarDays, Plus, Users } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getProductions } from "@/lib/queries";
-import DeleteProductionButton from "@/components/DeleteProductionButton";
+import { prisma } from "@/lib/db";
+import ProductionsClient, { type ProductionItem } from "./ProductionsClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductionsPage() {
-  const productions = await getProductions();
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const raw = await prisma.production.findMany({
+    include: { theatre: true, _count: { select: { members: true, odgs: true } } },
+    orderBy: { startDate: "desc" },
+  });
+
+  const productions: ProductionItem[] = raw.map((p) => ({
+    id: p.id,
+    title: p.title,
+    composer: p.composer,
+    theatre: { name: p.theatre.name, city: p.theatre.city },
+    startDate: p.startDate ? p.startDate.toISOString() : null,
+    endDate: p.endDate ? p.endDate.toISOString() : null,
+    _count: p._count,
+    status: (() => {
+      if (p.startDate && p.endDate && new Date(p.startDate) <= today && new Date(p.endDate) >= today)
+        return "active";
+      if (p.startDate && new Date(p.startDate) > today) return "future";
+      return "past";
+    })(),
+  }));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Produzioni</h1>
-          <p className="text-muted-foreground mt-1">Tutte le produzioni attive e passate</p>
+          <p className="text-muted-foreground mt-0.5">
+            {productions.length === 0
+              ? "Nessuna produzione"
+              : `${productions.length} produzion${productions.length === 1 ? "e" : "i"}`}
+          </p>
         </div>
         <Link href="/productions/new" className={cn(buttonVariants())}>
           <Plus size={16} /> Nuova produzione
@@ -35,36 +60,7 @@ export default async function ProductionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {productions.map((p) => (
-            <Card key={p.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="pt-5">
-                <div className="flex items-start justify-between mb-3">
-                  <Link href={`/productions/${p.id}`} className="block group flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h2 className="font-bold group-hover:underline">{p.title}</h2>
-                        {p.composer && <p className="text-sm text-muted-foreground">{p.composer}</p>}
-                      </div>
-                      <Badge variant="secondary">{p.theatre.name}</Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Users size={11} /> {p._count.members} artisti</span>
-                      <span className="flex items-center gap-1"><CalendarDays size={11} /> {p._count.odgs} ODG</span>
-                      {p.startDate && (
-                        <span>
-                          {new Date(p.startDate).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
-                          {p.endDate && ` → ${new Date(p.endDate).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}`}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  <DeleteProductionButton id={p.id} title={p.title} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ProductionsClient productions={productions} />
       )}
     </div>
   );
