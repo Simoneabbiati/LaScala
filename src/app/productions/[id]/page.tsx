@@ -3,10 +3,11 @@ import React, { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react";
-import { EXTRAS_TYPES, REPARTI_TECNICI_TYPES, MAESTRI_COLLABORATORI_TYPES, COMPLESSI_ARTISTICI_TYPES } from "@/lib/constants";
+import { EXTRAS_TYPES, REPARTI_TECNICI_TYPES, MAESTRI_COLLABORATORI_TYPES, COMPLESSI_ARTISTICI_TYPES, TEAM_CREATIVO_TYPES } from "@/lib/constants";
 
 const TIPO_DEPTS_MAP = new Map<string, readonly string[]>([
   ["CAST_EXTRAS", EXTRAS_TYPES],
+  ["TEAM_CREATIVO", TEAM_CREATIVO_TYPES],
   ["REPARTI_TECNICI", REPARTI_TECNICI_TYPES],
   ["MAESTRI_COLLABORATORI", MAESTRI_COLLABORATORI_TYPES],
   ["COMPLESSI_ARTISTICI", COMPLESSI_ARTISTICI_TYPES],

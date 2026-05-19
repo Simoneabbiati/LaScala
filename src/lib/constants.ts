@@ -20,6 +20,15 @@ export const COMPLESSI_ARTISTICI_TYPES = [
   "Coro Voci Bianche", "Corpo di Ballo",
 ] as const;
 
+export const TEAM_CREATIVO_TYPES = [
+  "Regista", "Assistente alla Regia",
+  "Scenografo", "Assistente alle Scene",
+  "Costumista", "Assistente ai Costumi",
+  "Coreografo", "Assistente Coreografo",
+  "Movimenti Scenici", "Direttore d'Orchestra",
+  "Light Designer", "Video Designer",
+] as const;
+
 export const ACTIVITIES = [
   "Prova di Scena",
   "Prova Musicale",
