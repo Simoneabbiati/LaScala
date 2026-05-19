@@ -198,23 +198,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   // ── Extra events ──
   if (odg.extraEvents) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: "EVENTI COLLATERALI / EXTRAS", bold: true, size: 18, color: "555555" })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 240, after: 80 },
-    }));
+    children.push(new Paragraph({ spacing: { before: 240, after: 0 } }));
     children.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+      borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
       rows: [
         new TableRow({
-          children: [
-            new TableCell({
-              margins: { top: 120, bottom: 120, left: 120, right: 120 },
-              borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder },
-              children: [new Paragraph({ children: [new TextRun({ text: odg.extraEvents, size: 18 })] })],
-            }),
-          ],
+          tableHeader: true,
+          children: [new TableCell({
+            shading: { type: ShadingType.SOLID, color: "F5F5F5" },
+            borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
+            margins: { top: 60, bottom: 60, left: 80, right: 80 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "EVENTI COLLATERALI / EXTRAS", bold: true, size: 18, color: "555555" })] })],
+          })],
+        }),
+        new TableRow({
+          children: [new TableCell({
+            borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
+            margins: { top: 120, bottom: 120, left: 120, right: 120 },
+            children: [new Paragraph({ children: [new TextRun({ text: odg.extraEvents, size: 18 })] })],
+          })],
         }),
       ],
     }));
@@ -222,23 +225,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   // ── Note ──
   if (odg.notes) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: "NOTE / NOTES", bold: true, size: 18, color: "555555" })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 240, after: 80 },
-    }));
+    children.push(new Paragraph({ spacing: { before: 240, after: 0 } }));
     children.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+      borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
       rows: [
         new TableRow({
-          children: [
-            new TableCell({
-              margins: { top: 120, bottom: 120, left: 120, right: 120 },
-              borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder },
-              children: [new Paragraph({ children: [new TextRun({ text: odg.notes, size: 18 })] })],
-            }),
-          ],
+          tableHeader: true,
+          children: [new TableCell({
+            shading: { type: ShadingType.SOLID, color: "F5F5F5" },
+            borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
+            margins: { top: 60, bottom: 60, left: 80, right: 80 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "NOTE / NOTES", bold: true, size: 18, color: "555555" })] })],
+          })],
+        }),
+        new TableRow({
+          children: [new TableCell({
+            borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
+            margins: { top: 120, bottom: 120, left: 120, right: 120 },
+            children: [new Paragraph({ children: [new TextRun({ text: odg.notes, size: 18 })] })],
+          })],
         }),
       ],
     }));

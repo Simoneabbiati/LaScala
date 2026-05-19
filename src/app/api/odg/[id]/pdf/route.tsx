@@ -48,9 +48,9 @@ const styles = StyleSheet.create({
   footerRight: { flex: 1, alignItems: "flex-end" },
   footerText: { fontSize: 7, color: "#aaa" },
   footerStageManager: { fontSize: 7, color: "#666", textAlign: "center" },
-  notesSection: { marginTop: 16, marginBottom: 8 },
-  notesSectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#555555", marginBottom: 6, textAlign: "center" },
-  notesBox: { border: "1 solid #ddd", padding: 8, minHeight: 40, fontSize: 9 },
+  notesSection: { marginTop: 16, marginBottom: 8, border: "1 solid #ddd" },
+  notesSectionTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#555", backgroundColor: "#f5f5f5", padding: "4 8", borderBottom: "0.5 solid #ddd", textAlign: "center" },
+  notesBox: { padding: 8, minHeight: 36, fontSize: 9 },
 });
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
