@@ -259,7 +259,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 <option value="">—</option>
                 {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
-              {!isExtras && <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />}
+              <Input value={editEntry.notes} onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })} placeholder="Note" className="h-7 w-32 text-sm" />
               <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 text-success-foreground"><Check size={13} /></Button>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditEntry(null)}><X size={13} /></Button>
             </form>
@@ -289,7 +289,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
         <TableCell className="text-sm">{entry.activity}</TableCell>
         <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
-        <TableCell className="text-sm text-muted-foreground">{isExtras ? "—" : (entry.notes ?? "—")}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
         <TableCell>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
@@ -360,7 +360,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           {/* Programma del giorno */}
           <Card className="flex flex-col min-h-0 flex-1 overflow-hidden">
             <CardHeader className="pb-3 shrink-0">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <CardTitle className="text-sm font-semibold">Programma del giorno</CardTitle>
                 <Button size="sm" variant="outline" onClick={() => setShowSessionForm(!showSessionForm)}>
                   <Plus size={13} /> Aggiungi blocco
@@ -666,7 +666,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                         <>
                           <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">Extras</div>
                           <Table>
-                            <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead></TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
                             <TableBody>{extrasEntries.map((e) => entryRow(e, true))}</TableBody>
                           </Table>
                         </>
