@@ -14,7 +14,7 @@ export async function PATCH(
       endTime: body.endTime,
       activity: body.activity,
       locationId: body.locationId || null,
-      notes: body.notes,
+      notes: body.notes || null,
       ...(body.characterName !== undefined ? { characterName: body.characterName || null } : {}),
     },
     include: { member: { include: { person: true } }, location: true },

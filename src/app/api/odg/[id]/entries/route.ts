@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: odgId } = await params;
   const body = await req.json();
+  try {
 
   const member = await prisma.productionMember.findUnique({
     where: { id: body.memberId },
@@ -71,4 +72,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   return NextResponse.json(entry, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/odg/[id]/entries]", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

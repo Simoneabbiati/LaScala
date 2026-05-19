@@ -548,14 +548,47 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                               <div className="px-3 py-1 text-xs font-semibold text-muted-foreground bg-muted/30 border-b tracking-wide">
                                 {ld.label}
                               </div>
-                              {ldMembers.map((m) => (
-                                <div key={m.id} className="flex items-center gap-2 px-3 py-2.5">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{m.person?.name ?? "— da assegnare"}</p>
-                                    <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
-                                  </div>
-                                </div>
-                              ))}
+                              {ldMembers.map((m) => {
+                                const ldHasDetails = !!(m.person?.email || m.person?.phone || m.notes);
+                                const ldIsExpanded = expandedId === m.id;
+                                return (
+                                  <React.Fragment key={m.id}>
+                                    <div
+                                      className={`flex items-center gap-2 px-3 py-2.5 transition-colors ${ldHasDetails ? "cursor-pointer hover:bg-muted/30" : ""}`}
+                                      onClick={() => ldHasDetails && setExpandedId(ldIsExpanded ? null : m.id)}
+                                    >
+                                      {ldHasDetails ? (
+                                        <ChevronDown size={13} className={`text-muted-foreground/50 transition-transform shrink-0 ${ldIsExpanded ? "" : "-rotate-90"}`} />
+                                      ) : (
+                                        <span className="w-[13px] shrink-0" />
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{m.person?.name ?? "— da assegnare"}</p>
+                                        <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
+                                      </div>
+                                    </div>
+                                    {ldIsExpanded && ldHasDetails && (
+                                      <div className="bg-muted/20 px-8 py-3 space-y-1.5 text-sm">
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                          {m.person?.email && (
+                                            <a href={`mailto:${m.person.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
+                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                                              {m.person.email}
+                                            </a>
+                                          )}
+                                          {m.person?.phone && (
+                                            <a href={`tel:${m.person.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
+                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+                                              {m.person.phone}
+                                            </a>
+                                          )}
+                                        </div>
+                                        {m.notes && <p className="text-xs text-muted-foreground italic">{m.notes}</p>}
+                                      </div>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
                             </React.Fragment>
                           );
                         })}

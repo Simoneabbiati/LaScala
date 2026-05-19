@@ -71,6 +71,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   });
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+  const linkedByParent = departments.reduce<Record<string, typeof departments>>((acc, d) => {
+    if (d.linkedToDept) { (acc[d.linkedToDept] ??= []).push(d); }
+    return acc;
+  }, {});
+
   const customDepts = [...new Set(
     odg.entries.map((e) => e.member.department).filter((d) => !deptOrder.includes(d))
   )];
@@ -177,7 +182,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     if (dept === "CAST_EXTRAS") continue;
     const entries = entriesByDept[dept] ?? [];
     const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
-    if (!entries.length && !extrasEntries.length) continue;
+    const linked = linkedByParent[dept] ?? [];
+    const linkedEntries = linked.flatMap((ld) => entriesByDept[ld.value] ?? []);
+    if (!entries.length && !extrasEntries.length && !linkedEntries.length) continue;
     const bgColor = lightenHex(deptColor[dept] ?? "#cccccc");
     const deptSectionLabel = dept === "CAST" ? "COMPAGNIA" : (deptLabel[dept] ?? dept).toUpperCase();
 
@@ -220,6 +227,25 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
         rows: [
           new TableRow({ tableHeader: true, children: [headerCell("TIPO"), headerCell("ORARIO"), headerCell("ATTIVITÀ"), headerCell("LUOGO"), headerCell("—")] }),
           ...extrasEntries.map((e) => makeEntryRow(e, true)),
+        ],
+      }));
+    }
+
+    for (const ld of linked) {
+      const ldEntries = entriesByDept[ld.value] ?? [];
+      if (!ldEntries.length) continue;
+      children.push(new Paragraph({
+        children: [new TextRun({ text: ld.label.toUpperCase(), size: 14, color: "777777" })],
+        shading: { type: ShadingType.SOLID, color: "F5F5F5" },
+        spacing: { before: 0, after: 0 },
+        indent: { left: convertInchesToTwip(0.1) },
+      }));
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
+        rows: [
+          new TableRow({ tableHeader: true, children: [headerCell("NOMINATIVO"), headerCell("ORARIO"), headerCell("ATTIVITÀ"), headerCell("LUOGO"), headerCell("NOTE")] }),
+          ...ldEntries.map((e) => makeEntryRow(e, false)),
         ],
       }));
     }
