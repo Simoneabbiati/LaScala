@@ -3,7 +3,20 @@ import React, { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react";
-import { EXTRAS_TYPES } from "@/lib/constants";
+import { EXTRAS_TYPES, REPARTI_TECNICI_TYPES, MAESTRI_COLLABORATORI_TYPES, COMPLESSI_ARTISTICI_TYPES } from "@/lib/constants";
+
+const TIPO_DEPTS_MAP = new Map<string, readonly string[]>([
+  ["CAST_EXTRAS", EXTRAS_TYPES],
+  ["REPARTI_TECNICI", REPARTI_TECNICI_TYPES],
+  ["MAESTRI_COLLABORATORI", MAESTRI_COLLABORATORI_TYPES],
+  ["COMPLESSI_ARTISTICI", COMPLESSI_ARTISTICI_TYPES],
+]);
+
+const SUBDEPT_VALUES = new Set([
+  "ORCHESTRA", "COMPLESSO_MUSICALE_PALCOSCENICO", "ARTISTI_CORO_UOMINI", "ARTISTE_CORO_DONNE", "CORO_VOCI_BIANCHE", "CORPO_DI_BALLO",
+  "MAESTRO_DI_SALA", "MAESTRI_DI_PALCOSCENICO", "MAESTRO_ALLE_LUCI", "MAESTRO_AI_SOVRATITOLI",
+  "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI", "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
+]);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +69,11 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
     return acc;
   }, {});
   const deptSegments = departments.reduce<{ group: string | null; items: Dept[] }[]>((acc, dept) => {
+    const last = acc[acc.length - 1];
+    if (last && last.group === dept.group) { last.items.push(dept); } else { acc.push({ group: dept.group, items: [dept] }); }
+    return acc;
+  }, []);
+  const formDeptSegments = departments.filter((d) => !d.linkedToDept && !SUBDEPT_VALUES.has(d.value)).reduce<{ group: string | null; items: Dept[] }[]>((acc, dept) => {
     const last = acc[acc.length - 1];
     if (last && last.group === dept.group) { last.items.push(dept); } else { acc.push({ group: dept.group, items: [dept] }); }
     return acc;
@@ -333,7 +351,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                   <div className="grid grid-cols-2 gap-3">
                     <FormField label="Dipartimento *">
                       <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value, customDept: "", roleTitle: "" })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                        {deptSegments.map((seg) =>
+                        {formDeptSegments.map((seg) =>
                           seg.group ? (
                             <optgroup key={seg.group} label={seg.group}>
                               {seg.items.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -353,11 +371,11 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                         <Input required value={memberForm.customDept} onChange={(e) => setMemberForm({ ...memberForm, customDept: e.target.value })} placeholder="Nome reparto" className="h-8 text-sm mt-1" />
                       )}
                     </FormField>
-                    {memberForm.department === "CAST_EXTRAS" ? (
+                    {TIPO_DEPTS_MAP.has(memberForm.department) ? (
                       <FormField label="Tipo *">
                         <select required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
                           <option value="">Seleziona tipo…</option>
-                          {EXTRAS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                          {(TIPO_DEPTS_MAP.get(memberForm.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
                         </select>
                       </FormField>
                     ) : (
@@ -448,9 +466,10 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                   )}
                                   <option value="__CUSTOM__">+ Personalizzato…</option>
                                 </select>
-                                {editState.department === "CAST_EXTRAS" ? (
+                                {TIPO_DEPTS_MAP.has(editState.department) ? (
                                   <select value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
-                                    {EXTRAS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                                    <option value="">Seleziona tipo…</option>
+                                    {(TIPO_DEPTS_MAP.get(editState.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
                                   </select>
                                 ) : (
                                   <>
@@ -483,8 +502,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                 )}
                                 {!hasDetails && <span className="w-[13px] shrink-0" />}
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-medium truncate ${!m.person && m.department !== "CAST_EXTRAS" ? "text-muted-foreground italic" : ""}`}>
-                                    {m.department === "CAST_EXTRAS" ? m.roleTitle : (m.person?.name ?? "— da assegnare")}
+                                  <p className={`text-sm font-medium truncate ${!m.person && !TIPO_DEPTS_MAP.has(m.department) ? "text-muted-foreground italic" : ""}`}>
+                                    {TIPO_DEPTS_MAP.has(m.department) ? m.roleTitle : (m.person?.name ?? "— da assegnare")}
                                   </p>
                                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                     <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: deptBg[m.department] ?? "#e5e5e544" }}>
