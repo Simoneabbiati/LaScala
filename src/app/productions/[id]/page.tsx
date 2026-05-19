@@ -362,7 +362,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                           <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_COLOR[m.department] + "44" }}>
                             {DEPT_LABEL[m.department]}
                           </Badge>
-                          <span className="text-xs text-muted-foreground italic truncate">{m.roleTitle}</span>
+                          <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
                           {m.characterName && (
                             <span className="text-xs text-foreground/70 truncate">· {m.characterName}</span>
                           )}
