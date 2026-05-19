@@ -42,11 +42,12 @@ const styles = StyleSheet.create({
   timeCol: { width: "18%", fontSize: 9 },
   activityCol: { width: "32%", fontSize: 9 },
   locationCol: { width: "22%", fontSize: 9, color: "#555" },
-  footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 4 },
-  footerRow: { flexDirection: "row", justifyContent: "space-between" },
+  footer: { position: "absolute", bottom: 20, left: 30, right: 30, borderTop: "0.5 solid #ddd", paddingTop: 5, flexDirection: "row", alignItems: "flex-start" },
+  footerLeft: { flex: 1 },
+  footerCenter: { flex: 2, alignItems: "center" },
+  footerRight: { flex: 1, alignItems: "flex-end" },
   footerText: { fontSize: 7, color: "#aaa" },
-  footerSmRow: { flexDirection: "row", justifyContent: "center", marginTop: 3 },
-  footerStageManager: { fontSize: 7, color: "#555", textAlign: "center" },
+  footerStageManager: { fontSize: 7, color: "#666", textAlign: "center" },
   notesSection: { marginTop: 16, marginBottom: 8 },
   notesSectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#555555", marginBottom: 6, textAlign: "center" },
   notesBox: { border: "1 solid #ddd", padding: 8, minHeight: 40, fontSize: 9 },
@@ -167,34 +168,28 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
             <Text style={styles.footerText}>{odg.production.title} · ODG {dateLabel}</Text>
+          </View>
+          <View style={styles.footerCenter}>
+            {odg.production.stageManagerName && (
+              <Text style={styles.footerStageManager}>
+                {"DS/SM: "}{odg.production.stageManagerName}
+                {odg.production.stageManagerEmail ? ` · ${odg.production.stageManagerEmail}` : ""}
+                {odg.production.stageManagerPhone ? ` · ${odg.production.stageManagerPhone}` : ""}
+              </Text>
+            )}
+            {odg.production.asstStageManagerName && (
+              <Text style={styles.footerStageManager}>
+                {"ADS/ASM: "}{odg.production.asstStageManagerName}
+                {odg.production.asstStageManagerEmail ? ` · ${odg.production.asstStageManagerEmail}` : ""}
+                {odg.production.asstStageManagerPhone ? ` · ${odg.production.asstStageManagerPhone}` : ""}
+              </Text>
+            )}
+          </View>
+          <View style={styles.footerRight}>
             <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
-          {(odg.production.stageManagerName || odg.production.asstStageManagerName) && (
-            <View style={{ width: "100%" }}>
-              {odg.production.stageManagerName && (
-                <View style={styles.footerSmRow}>
-                  <Text style={styles.footerStageManager}>
-                    {"Direzione di scena/Stage manager: "}
-                    {odg.production.stageManagerName}
-                    {odg.production.stageManagerEmail ? ` | ${odg.production.stageManagerEmail}` : ""}
-                    {odg.production.stageManagerPhone ? ` | ${odg.production.stageManagerPhone}` : ""}
-                  </Text>
-                </View>
-              )}
-              {odg.production.asstStageManagerName && (
-                <View style={styles.footerSmRow}>
-                  <Text style={styles.footerStageManager}>
-                    {"Assistente Direzione di Scena/Assistant Stage Manager: "}
-                    {odg.production.asstStageManagerName}
-                    {odg.production.asstStageManagerEmail ? ` | ${odg.production.asstStageManagerEmail}` : ""}
-                    {odg.production.asstStageManagerPhone ? ` | ${odg.production.asstStageManagerPhone}` : ""}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
         </View>
       </Page>
     </Document>
