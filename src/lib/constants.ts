@@ -1,12 +1,37 @@
+export const EXTRAS_TYPES = [
+  "Mime", "Mimi", "Comparse", "Acrobati",
+  "Circensi", "Stuntman", "Danzatori", "Illusionista",
+] as const;
+
 export const DEPARTMENTS = [
   { value: "TEAM_CREATIVO", label: "Team Creativo", color: "#e8a598" },
-  { value: "CAST", label: "Cast", color: "#e8a598" },
+  { value: "CAST", label: "Solisti", color: "#e8a598" },
+  { value: "CAST_EXTRAS", label: "Extras", color: "#e8a598" },
   { value: "ORCHESTRA", label: "Orchestra", color: "#a8c4d4" },
   { value: "MAESTRI_COLLABORATORI", label: "Maestri Collaboratori", color: "#a8c4d4" },
-  { value: "AREA_TECNICA", label: "Area Tecnica", color: "#a8c8a0" },
+  { value: "MACCHINISTI", label: "Reparto Macchinisti", color: "#a8c8a0" },
+  { value: "ELETTRICISTI", label: "Reparto Elettricisti", color: "#a8c8a0" },
+  { value: "CONSOLLISTA", label: "Consollista", color: "#a8c8a0" },
+  { value: "ATTREZZISTI", label: "Reparto Attrezzisti", color: "#a8c8a0" },
+  { value: "FONICI", label: "Reparto Fonici", color: "#a8c8a0" },
+  { value: "SARTORIA", label: "Reparto Sartoria", color: "#a8c8a0" },
+  { value: "TRUCCO_PARRUCCO", label: "Reparto Trucco e Parrucco", color: "#a8c8a0" },
+  { value: "AREA_TECNICA", label: "Area Tecnica", color: "#a8c8a0" }, // legacy
 ] as const;
 
 export type Department = (typeof DEPARTMENTS)[number]["value"];
+
+export const TECHNICAL_DEPT_VALUES = [
+  "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI",
+  "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
+] as const;
+
+export const DEPT_ORDER = [
+  "TEAM_CREATIVO", "CAST", "CAST_EXTRAS", "ORCHESTRA", "MAESTRI_COLLABORATORI",
+  "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI",
+  "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
+  "AREA_TECNICA",
+];
 
 export const ACTIVITIES = [
   "Prova di Scena",

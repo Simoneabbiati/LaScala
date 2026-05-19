@@ -3,7 +3,7 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users, X, Check } from "lucide-react";
-import { DEPARTMENTS, DEPT_BG, DEPT_LABEL } from "@/lib/constants";
+import { DEPT_BG, DEPT_LABEL, DEPT_ORDER, TECHNICAL_DEPT_VALUES, EXTRAS_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,6 @@ type TheatreOption = { id: string; name: string; city: string };
 type Odg = { id: string; date: string; status?: string | null };
 type Production = { id: string; title: string; composer?: string; startDate?: string; endDate?: string; theatre: Theatre; members: Member[]; odgs: Odg[]; stageManagerName?: string; stageManagerEmail?: string; stageManagerPhone?: string; asstStageManagerName?: string; asstStageManagerEmail?: string; asstStageManagerPhone?: string };
 
-const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
 
 type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
@@ -31,7 +30,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const [production, setProduction] = useState<Production | null>(null);
   const [showMemberForm, setShowMemberForm] = useState(false);
-  const [memberForm, setMemberForm] = useState({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
+  const [memberForm, setMemberForm] = useState({ personName: "", department: "CAST", customDept: "", roleTitle: "", characterName: "", email: "", phone: "" });
   const [editState, setEditState] = useState<EditState | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(defaultConfirm);
@@ -76,11 +75,12 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
 
   const addMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const dept = memberForm.department === "__CUSTOM__" ? memberForm.customDept : memberForm.department;
     await fetch(`/api/productions/${id}/members`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(memberForm),
+      body: JSON.stringify({ ...memberForm, department: dept }),
     });
-    setMemberForm({ personName: "", department: "CAST", roleTitle: "", characterName: "", email: "", phone: "" });
+    setMemberForm({ personName: "", department: "CAST", customDept: "", roleTitle: "", characterName: "", email: "", phone: "" });
     setShowMemberForm(false);
     load();
   };
@@ -127,7 +127,11 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
 
   if (!production) return <div className="text-muted-foreground">Caricamento...</div>;
 
-  const membersByDept = DEPT_ORDER.reduce<Record<string, Member[]>>((acc, dept) => {
+  const productionCustomDepts = [...new Set(
+    production.members.map((m) => m.department).filter((d) => !DEPT_ORDER.includes(d))
+  )];
+  const fullDeptOrder = [...DEPT_ORDER, ...productionCustomDepts];
+  const membersByDept = fullDeptOrder.reduce<Record<string, Member[]>>((acc, dept) => {
     acc[dept] = production.members.filter((m) => m.department === dept);
     return acc;
   }, {});
@@ -337,28 +341,59 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               <CardContent>
                 <form onSubmit={addMember} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Nome *">
-                      <Input required size={1} value={memberForm.personName} onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })} placeholder="Nome e Cognome" className="h-8 text-sm" />
-                    </FormField>
                     <FormField label="Dipartimento *">
-                      <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                        {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      <select value={memberForm.department} onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value, customDept: "", roleTitle: "" })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                        <optgroup label="Compagnia">
+                          <option value="CAST">Solisti</option>
+                          <option value="CAST_EXTRAS">Extras</option>
+                        </optgroup>
+                        <option value="TEAM_CREATIVO">Team Creativo</option>
+                        <optgroup label="Musica">
+                          <option value="ORCHESTRA">Orchestra</option>
+                          <option value="MAESTRI_COLLABORATORI">Maestri Collaboratori</option>
+                        </optgroup>
+                        <optgroup label="Reparti Tecnici">
+                          {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
+                        </optgroup>
+                        {productionCustomDepts.length > 0 && (
+                          <optgroup label="Personalizzati">
+                            {productionCustomDepts.map((d) => <option key={d} value={d}>{d}</option>)}
+                          </optgroup>
+                        )}
+                        <option value="__CUSTOM__">+ Personalizzato…</option>
                       </select>
+                      {memberForm.department === "__CUSTOM__" && (
+                        <Input required value={memberForm.customDept} onChange={(e) => setMemberForm({ ...memberForm, customDept: e.target.value })} placeholder="Nome reparto" className="h-8 text-sm mt-1" />
+                      )}
                     </FormField>
-                    <FormField label="Ruolo *">
-                      <Input required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} placeholder="Direttore d'orchestra" className="h-8 text-sm" />
-                    </FormField>
-                    {memberForm.department === "CAST" && (
-                      <FormField label="Personaggio">
-                        <Input value={memberForm.characterName} onChange={(e) => setMemberForm({ ...memberForm, characterName: e.target.value })} placeholder="Gulliver" className="h-8 text-sm" />
+                    {memberForm.department === "CAST_EXTRAS" ? (
+                      <FormField label="Tipo *">
+                        <select required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                          <option value="">Seleziona tipo…</option>
+                          {EXTRAS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
                       </FormField>
+                    ) : (
+                      <>
+                        <FormField label="Nome *">
+                          <Input required size={1} value={memberForm.personName} onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })} placeholder="Nome e Cognome" className="h-8 text-sm" />
+                        </FormField>
+                        <FormField label="Ruolo *">
+                          <Input required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} placeholder="Direttore d'orchestra" className="h-8 text-sm" />
+                        </FormField>
+                        {memberForm.department === "CAST" && (
+                          <FormField label="Personaggio">
+                            <Input value={memberForm.characterName} onChange={(e) => setMemberForm({ ...memberForm, characterName: e.target.value })} placeholder="Gulliver" className="h-8 text-sm" />
+                          </FormField>
+                        )}
+                        <FormField label="Email">
+                          <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} className="h-8 text-sm" />
+                        </FormField>
+                        <FormField label="Telefono">
+                          <Input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} className="h-8 text-sm" />
+                        </FormField>
+                      </>
                     )}
-                    <FormField label="Email">
-                      <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} className="h-8 text-sm" />
-                    </FormField>
-                    <FormField label="Telefono">
-                      <Input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} className="h-8 text-sm" />
-                    </FormField>
                   </div>
                   <div className="flex gap-2">
                     <Button type="submit" size="sm">Aggiungi</Button>
@@ -374,7 +409,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
               {production.members.length === 0 && (
                 <p className="text-center text-sm text-muted-foreground py-8">Nessun membro ancora.</p>
               )}
-              {DEPT_ORDER.flatMap((dept) =>
+              {fullDeptOrder.flatMap((dept) =>
                 (membersByDept[dept] ?? []).map((m) => {
                   const isEditing = editState?.memberId === m.id;
                   const isExpanded = expandedId === m.id;
@@ -382,12 +417,37 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                   if (isEditing && editState) {
                     return (
                       <div key={m.id} className="p-3 space-y-2 bg-muted/40">
-                        <Input value={editState.personName} onChange={(e) => setEditState({ ...editState, personName: e.target.value })} placeholder="Nome" className="text-sm" />
                         <select value={editState.department} onChange={(e) => setEditState({ ...editState, department: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
-                          {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                          <optgroup label="Compagnia">
+                            <option value="CAST">Solisti</option>
+                            <option value="CAST_EXTRAS">Extras</option>
+                          </optgroup>
+                          <option value="TEAM_CREATIVO">Team Creativo</option>
+                          <optgroup label="Musica">
+                            <option value="ORCHESTRA">Orchestra</option>
+                            <option value="MAESTRI_COLLABORATORI">Maestri Collaboratori</option>
+                          </optgroup>
+                          <optgroup label="Reparti Tecnici">
+                            {TECHNICAL_DEPT_VALUES.map((v) => <option key={v} value={v}>{DEPT_LABEL[v]}</option>)}
+                          </optgroup>
+                          {productionCustomDepts.length > 0 && (
+                            <optgroup label="Personalizzati">
+                              {productionCustomDepts.map((d) => <option key={d} value={d}>{d}</option>)}
+                            </optgroup>
+                          )}
+                          <option value="__CUSTOM__">+ Personalizzato…</option>
                         </select>
-                        <Input value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} placeholder="Ruolo" className="text-sm" />
-                        <Input value={editState.characterName} onChange={(e) => setEditState({ ...editState, characterName: e.target.value })} placeholder="Personaggio" className="text-sm" />
+                        {editState.department === "CAST_EXTRAS" ? (
+                          <select value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
+                            {EXTRAS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        ) : (
+                          <>
+                            <Input value={editState.personName} onChange={(e) => setEditState({ ...editState, personName: e.target.value })} placeholder="Nome" className="text-sm" />
+                            <Input value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} placeholder="Ruolo" className="text-sm" />
+                            <Input value={editState.characterName} onChange={(e) => setEditState({ ...editState, characterName: e.target.value })} placeholder="Personaggio" className="text-sm" />
+                          </>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                           <Input type="email" value={editState.email} onChange={(e) => setEditState({ ...editState, email: e.target.value })} placeholder="Email" className="text-sm" />
                           <Input value={editState.phone} onChange={(e) => setEditState({ ...editState, phone: e.target.value })} placeholder="Telefono" className="text-sm" />
@@ -412,12 +472,12 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                         )}
                         {!hasDetails && <span className="w-[13px] shrink-0" />}
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${!m.person ? "text-muted-foreground italic" : ""}`}>
-                            {m.person?.name ?? "— da assegnare"}
+                          <p className={`text-sm font-medium truncate ${!m.person && m.department !== "CAST_EXTRAS" ? "text-muted-foreground italic" : ""}`}>
+                            {m.department === "CAST_EXTRAS" ? m.roleTitle : (m.person?.name ?? "— da assegnare")}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_BG[m.department] }}>
-                              {DEPT_LABEL[m.department]}
+                            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0.5" style={{ backgroundColor: DEPT_BG[m.department] ?? "#e5e5e544" }}>
+                              {DEPT_LABEL[m.department] ?? m.department}
                             </Badge>
                             <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
                             {m.characterName && (

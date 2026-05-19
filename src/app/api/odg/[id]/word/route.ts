@@ -5,9 +5,7 @@ import {
   TextRun, HeadingLevel, AlignmentType, WidthType, BorderStyle,
   ShadingType, convertInchesToTwip, PageOrientation,
 } from "docx";
-import { DEPT_LABEL, DEPT_COLOR } from "@/lib/constants";
-
-const DEPT_ORDER = ["TEAM_CREATIVO", "CAST", "ORCHESTRA", "MAESTRI_COLLABORATORI", "AREA_TECNICA"];
+import { DEPT_LABEL, DEPT_COLOR, DEPT_ORDER } from "@/lib/constants";
 
 function hexToDocxColor(hex: string): string {
   return hex.replace("#", "");
@@ -69,7 +67,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   });
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  const entriesByDept = DEPT_ORDER.reduce<Record<string, typeof odg.entries>>((acc, dept) => {
+  const customDepts = [...new Set(
+    odg.entries.map((e) => e.member.department).filter((d) => !DEPT_ORDER.includes(d))
+  )];
+  const fullDeptOrder = [...DEPT_ORDER, ...customDepts];
+  const entriesByDept = fullDeptOrder.reduce<Record<string, typeof odg.entries>>((acc, dept) => {
     acc[dept] = odg.entries.filter((e) => e.member.department === dept);
     return acc;
   }, {});
@@ -137,62 +139,87 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     children.push(new Paragraph({ spacing: { after: 240 } }));
   }
 
-  // ── Dept sections ──
-  for (const dept of DEPT_ORDER) {
-    const entries = entriesByDept[dept];
-    if (!entries?.length) continue;
-    const bgColor = lightenHex(DEPT_COLOR[dept]);
+  // helper to build entry rows
+  type OdgEntryRow = (typeof odg.entries)[number];
+  const makeEntryRow = (entry: OdgEntryRow, isExtras = false) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 26, type: WidthType.PERCENTAGE },
+          borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
+          margins: { top: 60, bottom: 60, left: 80, right: 80 },
+          children: isExtras ? [
+            new Paragraph({ children: [new TextRun({ text: entry.member.roleTitle, bold: true, size: 18 })] }),
+            ...(entry.characterName ? [new Paragraph({ children: [new TextRun({ text: `× ${entry.characterName}`, italics: true, size: 15, color: "666666" })] })] : []),
+          ] : [
+            new Paragraph({ children: [new TextRun({ text: entry.member.person?.name ?? "—", bold: true, size: 18 })] }),
+            new Paragraph({ children: [new TextRun({
+              text: entry.member.department === "CAST"
+                ? (entry.characterName ?? entry.member.characterName ?? "")
+                : entry.member.roleTitle,
+              italics: true, size: 15, color: "666666",
+            })] }),
+          ],
+        }),
+        dataCell(`${entry.startTime} – ${entry.endTime}`),
+        dataCell(entry.activity),
+        dataCell(entry.location?.name ?? "—"),
+        dataCell(isExtras ? "—" : (entry.notes ?? "—")),
+      ],
+    });
 
-    // Dept header row
+  // ── Dept sections ──
+  for (const dept of fullDeptOrder) {
+    if (dept === "CAST_EXTRAS") continue;
+    const entries = entriesByDept[dept] ?? [];
+    const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
+    if (!entries.length && !extrasEntries.length) continue;
+    const bgColor = lightenHex(DEPT_COLOR[dept] ?? "#cccccc");
+    const deptLabel = dept === "CAST" ? "COMPAGNIA" : (DEPT_LABEL[dept] ?? dept).toUpperCase();
+
     children.push(new Paragraph({
-      children: [new TextRun({ text: DEPT_LABEL[dept].toUpperCase(), bold: true, size: 18 })],
+      children: [new TextRun({ text: deptLabel, bold: true, size: 18 })],
       shading: { type: ShadingType.SOLID, color: bgColor },
       spacing: { before: 160, after: 0 },
       indent: { left: convertInchesToTwip(0.1) },
     }));
 
-    const table = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
-      rows: [
-        new TableRow({
-          tableHeader: true,
-          children: [
-            headerCell("NOMINATIVO"),
-            headerCell("ORARIO"),
-            headerCell("ATTIVITÀ"),
-            headerCell("LUOGO"),
-            headerCell("NOTE"),
-          ],
-        }),
-        ...entries.map((entry) =>
-          new TableRow({
-            children: [
-              new TableCell({
-                width: { size: 26, type: WidthType.PERCENTAGE },
-                borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder },
-                margins: { top: 60, bottom: 60, left: 80, right: 80 },
-                children: [
-                  new Paragraph({ children: [new TextRun({ text: entry.member.person?.name ?? "—", bold: true, size: 18 })] }),
-                  new Paragraph({ children: [new TextRun({
-                    text: entry.member.department === "CAST"
-                      ? (entry.characterName ?? entry.member.characterName ?? "")
-                      : entry.member.roleTitle,
-                    italics: true, size: 15, color: "666666",
-                  })] }),
-                ],
-              }),
-              dataCell(`${entry.startTime} – ${entry.endTime}`),
-              dataCell(entry.activity),
-              dataCell(entry.location?.name ?? "—"),
-              dataCell(entry.notes ?? "—"),
-            ],
-          })
-        ),
-      ],
-    });
+    if (entries.length > 0) {
+      if (extrasEntries.length > 0) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: "SOLISTI", size: 14, color: "777777" })],
+          shading: { type: ShadingType.SOLID, color: "F5F5F5" },
+          spacing: { before: 0, after: 0 },
+          indent: { left: convertInchesToTwip(0.1) },
+        }));
+      }
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
+        rows: [
+          new TableRow({ tableHeader: true, children: [headerCell("NOMINATIVO"), headerCell("ORARIO"), headerCell("ATTIVITÀ"), headerCell("LUOGO"), headerCell("NOTE")] }),
+          ...entries.map((e) => makeEntryRow(e, false)),
+        ],
+      }));
+    }
 
-    children.push(table);
+    if (extrasEntries.length > 0) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: "EXTRAS", size: 14, color: "777777" })],
+        shading: { type: ShadingType.SOLID, color: "F5F5F5" },
+        spacing: { before: 0, after: 0 },
+        indent: { left: convertInchesToTwip(0.1) },
+      }));
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
+        rows: [
+          new TableRow({ tableHeader: true, children: [headerCell("TIPO"), headerCell("ORARIO"), headerCell("ATTIVITÀ"), headerCell("LUOGO"), headerCell("—")] }),
+          ...extrasEntries.map((e) => makeEntryRow(e, true)),
+        ],
+      }));
+    }
+
     children.push(new Paragraph({ spacing: { after: 80 } }));
   }
 
