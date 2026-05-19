@@ -12,11 +12,13 @@ type Props = {
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   lastOdgDate?: string | Date | null;
+  memberCount?: number;
+  odgCount?: number;
   isActive?: boolean;
   isFuture?: boolean;
 };
 
-export default function ProductionCard({ id, title, composer, theatreName, startDate, endDate, lastOdgDate, isActive, isFuture }: Props) {
+export default function ProductionCard({ id, title, composer, theatreName, startDate, endDate, lastOdgDate, memberCount, odgCount, isActive, isFuture }: Props) {
   const fmt = (d: string | Date, opts: Intl.DateTimeFormatOptions) =>
     new Date(d).toLocaleDateString("it-IT", opts);
 
@@ -41,9 +43,17 @@ export default function ProductionCard({ id, title, composer, theatreName, start
               {isFuture && <Badge variant="info" className="text-xs">In programma</Badge>}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays size={11} />
-            {dateLabel}
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              <CalendarDays size={11} className="shrink-0" />
+              <span className="truncate">{dateLabel}</span>
+            </div>
+            {(memberCount !== undefined || odgCount !== undefined) && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                {memberCount !== undefined && <span>{memberCount} art.</span>}
+                {odgCount !== undefined && <span>{odgCount} ODG</span>}
+              </div>
+            )}
           </div>
         </Link>
       </CardContent>

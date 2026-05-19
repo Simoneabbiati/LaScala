@@ -497,8 +497,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                 {!showNotes && <p className="text-xs text-muted-foreground italic">Nessuna nota.</p>}
               </div>
 
-              <Separator />
-
               {/* Extra Events */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
