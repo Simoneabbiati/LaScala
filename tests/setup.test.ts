@@ -10,7 +10,7 @@ describe("test infrastructure", () => {
       expect(production.title).toBe("Opera Test");
       const departments = await prisma.department.findMany();
       expect(departments.length).toBeGreaterThan(10);
-      expect(departments.find((d: any) => d.value === "CAST")).toBeTruthy();
+      expect(departments.find((d) => d.value === "CAST")).toBeTruthy();
     } finally {
       await prisma.$disconnect();
       cleanup();

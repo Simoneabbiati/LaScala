@@ -35,7 +35,7 @@ export async function createTestPrisma() {
   return { prisma, cleanup: () => { rmSync(dir, { recursive: true, force: true }); } };
 }
 
-export async function seedMinimalProduction(prisma: any) {
+export async function seedMinimalProduction(prisma: PrismaClient) {
   const theatre = await prisma.theatre.create({ data: { name: "Teatro Test", city: "Milano" } });
   const production = await prisma.production.create({
     data: { title: "Opera Test", theatreId: theatre.id },
