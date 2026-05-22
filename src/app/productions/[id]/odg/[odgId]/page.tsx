@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
@@ -79,13 +80,47 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const addSession = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    await fetch(`/api/odg/${odgId}/sessions`, {
+    const activity = sessionForm.activity;
+    const res = await fetch(`/api/odg/${odgId}/sessions`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...sessionForm, sortOrder: odg?.sessions.length ?? 0 }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      showSessionCreationToast(data, activity);
+    }
     setSessionForm(emptySession());
     setShowSessionForm(false);
     load();
+  };
+
+  const showSessionCreationToast = (
+    data: {
+      createdMembers: { roleTitle: string }[];
+      createdEntries: { roleTitle: string; required: boolean }[];
+    },
+    activity: string,
+  ) => {
+    const { createdMembers, createdEntries } = data;
+    if (createdEntries.length === 0) return;
+
+    const required = createdEntries.filter((e) => e.required);
+    const optional = createdEntries.filter((e) => !e.required);
+
+    const lines: string[] = [];
+    if (optional.length === 0) {
+      lines.push(`Aggiunte ${required.length} figure alla prova "${activity}".`);
+    } else {
+      lines.push(`Aggiunte ${createdEntries.length} figure alla prova "${activity}" (${required.length} richieste + ${optional.length} opzionali).`);
+      lines.push(`Opzionali: ${optional.map((o) => o.roleTitle).join(", ")} — rimuovile se non servono.`);
+    }
+    if (createdMembers.length > 0) {
+      lines.push(
+        `Visto che non erano nel roster, ho creato anche queste posizioni (da assegnare): ${createdMembers.map((m) => m.roleTitle).join(", ")}. ` +
+        `Puoi compilare i nomi dalla sezione Roster quando vuoi.`,
+      );
+    }
+    toast.message(lines[0], { description: lines.slice(1).join("\n") || undefined });
   };
 
   const saveSession = async (e: React.SyntheticEvent) => {
