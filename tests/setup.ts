@@ -5,6 +5,31 @@ import { readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// The route handler imports `prisma` from `@/lib/db` at module-load time.
+// `db.ts` reuses `globalThis.prisma` if present, so we install a proxy here
+// (before any route file gets imported) that delegates every call to the
+// PrismaClient created by the current `createTestPrisma()` call.
+let activeTestPrisma: PrismaClient | null = null;
+const prismaProxy: PrismaClient = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if (!activeTestPrisma) {
+        throw new Error(
+          "prisma proxy used before createTestPrisma(): set up a test DB first",
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const value = (activeTestPrisma as any)[prop];
+      return typeof value === "function" ? value.bind(activeTestPrisma) : value;
+    },
+  },
+) as unknown as PrismaClient;
+
+// Install the proxy as the singleton before `@/lib/db` is first imported.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).prisma = prismaProxy;
+
 export async function createTestPrisma() {
   const dir = mkdtempSync(path.join(tmpdir(), "lascala-test-"));
   const dbFile = path.join(dir, "test.db");
@@ -32,7 +57,15 @@ export async function createTestPrisma() {
   const adapter = new PrismaLibSql({ url });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prisma = new PrismaClient({ adapter } as any);
-  return { prisma, cleanup: () => { rmSync(dir, { recursive: true, force: true }); } };
+  activeTestPrisma = prisma;
+  return {
+    prisma,
+    cleanup: () => {
+      if (activeTestPrisma === prisma) activeTestPrisma = null;
+      rmSync(dir, { recursive: true, force: true });
+    },
+    dbUrl: url,
+  };
 }
 
 export async function seedMinimalProduction(prisma: PrismaClient) {
