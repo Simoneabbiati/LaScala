@@ -1,13 +1,14 @@
 import { describe, it, expect, afterEach } from "vitest";
+import type { NextRequest } from "next/server";
 import { createTestPrisma, seedMinimalProduction } from "../setup";
 import { POST as createSession } from "@/app/api/odg/[id]/sessions/route";
 
-function makeReq(body: object): Request {
+function makeReq(body: object): NextRequest {
   return new Request("http://test/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }) as NextRequest;
 }
 
 describe("POST /api/odg/[id]/sessions auto-population", () => {
@@ -32,7 +33,7 @@ describe("POST /api/odg/[id]/sessions auto-population", () => {
 
       const res = await createSession(makeReq({
         startTime: "10:00", endTime: "12:00", activity: "Prova di Scena", sortOrder: 0,
-      }) as any, { params: Promise.resolve({ id: odg.id }) });
+      }), { params: Promise.resolve({ id: odg.id }) });
       const json = await res.json();
       expect(res.status).toBe(201);
       expect(json.session).toBeDefined();
@@ -56,7 +57,7 @@ describe("POST /api/odg/[id]/sessions auto-population", () => {
       const { production, odg } = await seedMinimalProduction(prisma);
       const res = await createSession(makeReq({
         startTime: "10:00", endTime: "12:00", activity: "Prova di Scena", sortOrder: 0,
-      }) as any, { params: Promise.resolve({ id: odg.id }) });
+      }), { params: Promise.resolve({ id: odg.id }) });
       const json = await res.json();
       expect(json.createdMembers.length).toBe(5);
       expect(json.createdEntries.length).toBe(5);
@@ -81,7 +82,7 @@ describe("POST /api/odg/[id]/sessions auto-population", () => {
       const { odg } = await seedMinimalProduction(prisma);
       const res = await createSession(makeReq({
         startTime: "10:00", endTime: "12:00", activity: "ActivityWithoutPreset", sortOrder: 0,
-      }) as any, { params: Promise.resolve({ id: odg.id }) });
+      }), { params: Promise.resolve({ id: odg.id }) });
       const json = await res.json();
       expect(res.status).toBe(201);
       expect(json.session).toBeDefined();
@@ -110,7 +111,7 @@ describe("POST /api/odg/[id]/sessions auto-population", () => {
 
       const res = await createSession(makeReq({
         startTime: "10:00", endTime: "12:00", activity: "Prova di Scena", sortOrder: 0,
-      }) as any, { params: Promise.resolve({ id: odg.id }) });
+      }), { params: Promise.resolve({ id: odg.id }) });
       await res.json();
       const registaEntries = await prisma.odgEntry.findMany({
         where: { odgId: odg.id, memberId: regista.id },
@@ -137,7 +138,7 @@ describe("POST /api/odg/[id]/sessions auto-population", () => {
       });
       const res = await createSession(makeReq({
         startTime: "20:00", endTime: "23:00", activity: "Generale", sortOrder: 0,
-      }) as any, { params: Promise.resolve({ id: odg.id }) });
+      }), { params: Promise.resolve({ id: odg.id }) });
       const json = await res.json();
       expect(json.createdEntries.length).toBe(4);
       expect(json.createdMembers).toEqual([]);

@@ -5,7 +5,7 @@ describe("test infrastructure", () => {
   it("creates a working Prisma client + applies migrations + seeds data", async () => {
     const { prisma, cleanup } = await createTestPrisma();
     try {
-      const { theatre, production, odg } = await seedMinimalProduction(prisma);
+      const { theatre, production } = await seedMinimalProduction(prisma);
       expect(theatre.name).toBe("Teatro Test");
       expect(production.title).toBe("Opera Test");
       const departments = await prisma.department.findMany();
