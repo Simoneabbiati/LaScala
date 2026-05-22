@@ -1,0 +1,5 @@
+tests/
+vitest.config.ts
+docs/
+scripts/*.py
+.vscode/
