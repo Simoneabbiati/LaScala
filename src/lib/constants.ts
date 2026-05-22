@@ -1,3 +1,12 @@
+export const DEFAULT_LOCATIONS = [
+  "Palcoscenico",
+  "Camerone Trucco",
+  "Sartoria",
+  "Camerini",
+  "Buca d'Orchestra",
+  "Foyer",
+] as const;
+
 export const EXTRAS_TYPES = [
   "Mime", "Mimi", "Comparse", "Acrobati",
   "Circensi", "Stuntman", "Danzatori", "Illusionista",

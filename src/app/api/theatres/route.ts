@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
+import { DEFAULT_LOCATIONS } from "@/lib/constants";
 
 const getCachedTheatres = unstable_cache(
   () => prisma.theatre.findMany({
@@ -24,7 +25,14 @@ export async function POST(req: NextRequest) {
   const { revalidateTag } = await import("next/cache");
   const body = await req.json();
   const theatre = await prisma.theatre.create({
-    data: { name: body.name, city: body.city, logoUrl: body.logoUrl },
+    data: {
+      name: body.name,
+      city: body.city,
+      logoUrl: body.logoUrl,
+      locations: {
+        create: DEFAULT_LOCATIONS.map((name) => ({ name })),
+      },
+    },
   });
   revalidateTag("theatres", {});
   return NextResponse.json(theatre, { status: 201 });
