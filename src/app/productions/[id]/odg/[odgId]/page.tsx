@@ -107,20 +107,36 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     const required = createdEntries.filter((e) => e.required);
     const optional = createdEntries.filter((e) => !e.required);
 
-    const lines: string[] = [];
-    if (optional.length === 0) {
-      lines.push(`Aggiunte ${required.length} figure alla prova "${activity}".`);
-    } else {
-      lines.push(`Aggiunte ${createdEntries.length} figure alla prova "${activity}" (${required.length} richieste + ${optional.length} opzionali).`);
-      lines.push(`Opzionali: ${optional.map((o) => o.roleTitle).join(", ")} — rimuovile se non servono.`);
-    }
-    if (createdMembers.length > 0) {
-      lines.push(
-        `Visto che non erano nel roster, ho creato anche queste posizioni (da assegnare): ${createdMembers.map((m) => m.roleTitle).join(", ")}. ` +
-        `Puoi compilare i nomi dalla sezione Roster quando vuoi.`,
-      );
-    }
-    toast.message(lines[0], { description: lines.slice(1).join("\n") || undefined });
+    const headline = optional.length === 0
+      ? `Aggiunte ${required.length} figure a “${activity}”`
+      : `Aggiunte ${createdEntries.length} figure a “${activity}” (${required.length} richieste + ${optional.length} opzionali)`;
+
+    const hasDetails = optional.length > 0 || createdMembers.length > 0;
+    toast.message(headline, hasDetails ? {
+      description: (
+        <div className="flex flex-col gap-3 mt-1">
+          {optional.length > 0 && (
+            <div>
+              <div className="font-medium mb-1">Opzionali — rimuovile se non servono:</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {optional.map((o, i) => <li key={`opt-${i}`}>{o.roleTitle}</li>)}
+              </ul>
+            </div>
+          )}
+          {createdMembers.length > 0 && (
+            <div>
+              <div className="font-medium mb-1">Aggiunte al roster (da assegnare):</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {createdMembers.map((m, i) => <li key={`new-${i}`}>{m.roleTitle}</li>)}
+              </ul>
+              <div className="mt-1.5 opacity-75 text-[0.92em]">
+                Compila i nomi dalla sezione Roster quando vuoi.
+              </div>
+            </div>
+          )}
+        </div>
+      ),
+    } : undefined);
   };
 
   const saveSession = async (e: React.SyntheticEvent) => {
