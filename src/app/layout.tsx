@@ -4,6 +4,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import AppToaster from "@/components/AppToaster";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </SidebarInset>
           </SidebarProvider>
         </TooltipProvider>
+        <AppToaster />
       </body>
     </html>
   );
