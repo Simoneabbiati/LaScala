@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
-import { ChevronRight, Check, FileDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Check, FileDown, FileText, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
 import { ACTIVITIES } from "@/lib/constants";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
+import { groupEntriesByLocation } from "@/lib/entry-grouping";
 
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
@@ -53,11 +54,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const deptOrder = departments.filter((d) => !d.linkedToDept).map((d) => d.value);
   const deptLabel: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, d.label]));
   const deptBg: Record<string, string> = Object.fromEntries(departments.map((d) => [d.value, `${d.color}44`]));
-  const linkedByParent = departments.reduce<Record<string, { value: string; label: string; color: string }[]>>((acc, d) => {
-    if (d.linkedToDept) { (acc[d.linkedToDept] ??= []).push(d); }
-    return acc;
-  }, {});
-
   const load = () => fetch(`/api/odg/${odgId}`).then((r) => r.json()).then((data) => {
     setOdg(data);
     setNotesValue(data.notes ?? ""); latestNotes.current = data.notes ?? "";
@@ -268,10 +264,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     odg.entries.map((e) => e.member.department).filter((d) => !deptOrder.includes(d))
   )];
   const fullDeptOrder = [...deptOrder, ...entryCustomDepts];
-  const entriesByDept = fullDeptOrder.reduce<Record<string, OdgEntry[]>>((acc, dept) => {
-    acc[dept] = odg.entries.filter((e) => e.member.department === dept);
-    return acc;
-  }, {});
+  const entryGroups = groupEntriesByLocation(odg.entries);
 
   // Group sessions by location for display
   type SessionGroup = { locationId: string | null; locationName: string | null; sessions: OdgSession[] };
@@ -291,7 +284,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     if (editEntry?.id === entry.id) {
       return (
         <TableRow key={entry.id}>
-          <TableCell colSpan={6}>
+          <TableCell colSpan={5}>
             <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium shrink-0">
                 {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? entry.member.roleTitle)}
@@ -318,8 +311,10 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         </TableRow>
       );
     }
+    const rowBg = deptBg[entry.member.department]
+      ?? (entry.member.department === "CAST_EXTRAS" ? deptBg["CAST"] : undefined);
     return (
-      <TableRow key={entry.id} className="group">
+      <TableRow key={entry.id} className="group" style={rowBg ? { backgroundColor: rowBg } : undefined}>
         <TableCell>
           {isExtras ? (
             <>
@@ -347,7 +342,6 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         </TableCell>
         <TableCell className="font-mono text-sm">{entry.startTime} – {entry.endTime}</TableCell>
         <TableCell className="text-sm">{entry.activity}</TableCell>
-        <TableCell className="text-sm text-muted-foreground">{entry.location?.name ?? "—"}</TableCell>
         <TableCell className="text-sm text-muted-foreground">{entry.notes ?? "—"}</TableCell>
         <TableCell>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -695,57 +689,28 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
               )}
 
               <div className="space-y-3">
-                {fullDeptOrder.map((dept) => {
-                  if (dept === "CAST_EXTRAS") return null;
-                  const entries = entriesByDept[dept] ?? [];
-                  const extrasEntries = dept === "CAST" ? (entriesByDept["CAST_EXTRAS"] ?? []) : [];
-                  const linked = linkedByParent[dept] ?? [];
-                  const linkedEntries = linked.flatMap((ld) => entriesByDept[ld.value] ?? []);
-                  if (!entries.length && !extrasEntries.length && !linkedEntries.length) return null;
-
-                  const deptSectionLabel = dept === "CAST" ? "Compagnia" : (deptLabel[dept] ?? dept);
-                  const deptSectionBg = deptBg[dept] ?? "#e5e5e544";
-                  const showSolistiHeader = dept === "CAST" && extrasEntries.length > 0 && entries.length > 0;
-
-                  return (
-                    <Card key={dept} className="overflow-hidden">
-                      <div className="px-4 py-2 text-sm font-semibold" style={{ backgroundColor: deptSectionBg }}>{deptSectionLabel}</div>
-                      {entries.length > 0 && (
-                        <>
-                          {showSolistiHeader && (
-                            <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/20">Solisti</div>
-                          )}
-                          <Table>
-                            <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                            <TableBody>{entries.map((e) => entryRow(e, false))}</TableBody>
-                          </Table>
-                        </>
-                      )}
-                      {extrasEntries.length > 0 && (
-                        <>
-                          <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">Extras</div>
-                          <Table>
-                            <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                            <TableBody>{extrasEntries.map((e) => entryRow(e, true))}</TableBody>
-                          </Table>
-                        </>
-                      )}
-                      {linked.map((ld) => {
-                        const ldEntries = entriesByDept[ld.value] ?? [];
-                        if (!ldEntries.length) return null;
-                        return (
-                          <React.Fragment key={ld.value}>
-                            <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-b bg-muted/20">{ld.label}</div>
-                            <Table>
-                              <TableHeader><TableRow><TableHead>Nominativo</TableHead><TableHead>Orario</TableHead><TableHead>Attività</TableHead><TableHead>Luogo</TableHead><TableHead>Note</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                              <TableBody>{ldEntries.map((e) => entryRow(e, false))}</TableBody>
-                            </Table>
-                          </React.Fragment>
-                        );
-                      })}
-                    </Card>
-                  );
-                })}
+                {entryGroups.map((group) => (
+                  <Card key={group.locationId ?? "__no_location__"} className="overflow-hidden">
+                    <div className="px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
+                      <MapPin size={13} className="text-muted-foreground" />
+                      {group.locationName}
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nominativo</TableHead>
+                          <TableHead>Orario</TableHead>
+                          <TableHead>Attività</TableHead>
+                          <TableHead>Note</TableHead>
+                          <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.entries.map((e) => entryRow(e, e.member.department === "CAST_EXTRAS"))}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                ))}
               </div>
 
             </CardContent>
