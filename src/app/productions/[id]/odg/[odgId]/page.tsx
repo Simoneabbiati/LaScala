@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
-type Member = { id: string; department: string; roleTitle: string; characterName?: string; person: Person | null };
+type Member = { id: string; department: string; roleTitle: string; characterName?: string; conductorName?: string | null; conductorEmail?: string | null; conductorPhone?: string | null; person: Person | null };
 type OdgEntry = { id: string; startTime: string; endTime: string; activity: string; location?: Location; notes?: string; characterName?: string; member: Member };
 type OdgSession = { id: string; startTime: string; endTime: string; activity: string; location?: Location };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
@@ -294,7 +294,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
           <TableCell colSpan={6}>
             <form onSubmit={saveEntry} className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium shrink-0">
-                {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—")}
+                {isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? entry.member.roleTitle)}
               </span>
               {isExtras ? (
                 <Input type="number" min={1} value={editEntry.characterName} onChange={(e) => setEditEntry({ ...editEntry, characterName: e.target.value })} placeholder="Numero" className="h-7 w-20 text-sm" />
@@ -326,13 +326,21 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
               <div className="font-medium text-sm">{entry.member.roleTitle}</div>
               {entry.characterName && <div className="text-xs text-muted-foreground">× {entry.characterName}</div>}
             </>
-          ) : (
+          ) : entry.member.person?.name ? (
             <>
-              <div className="font-medium text-sm">{entry.member.person?.name ?? "—"}</div>
+              <div className="font-medium text-sm">{entry.member.person.name}</div>
               {entry.member.department === "CAST" ? (
                 <div className="text-xs text-muted-foreground italic">{(entry.characterName ?? entry.member.characterName) || "—"}</div>
               ) : (
                 <div className="text-xs text-muted-foreground italic">{entry.member.roleTitle}</div>
+              )}
+            </>
+          ) : (
+            // No person attached: either a section (Coro, Orchestra…) with optional conductor, or an unfilled role slot
+            <>
+              <div className="font-medium text-sm">{entry.member.roleTitle}</div>
+              {entry.member.conductorName && (
+                <div className="text-xs text-muted-foreground italic">M.o {entry.member.conductorName}</div>
               )}
             </>
           )}
@@ -348,7 +356,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
               <Pencil size={12} />
             </Button>
             <Button size="icon" variant="ghost-destructive" className="h-7 w-7"
-              onClick={() => deleteEntry(entry.id, isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? "—"))}>
+              onClick={() => deleteEntry(entry.id, isExtras ? entry.member.roleTitle : (entry.member.person?.name ?? entry.member.roleTitle))}>
               <Trash2 size={12} />
             </Button>
           </div>

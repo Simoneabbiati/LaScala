@@ -12,11 +12,17 @@ describe("applyLinkedDepts", () => {
     try {
       const { production, odg } = await seedMinimalProduction(prisma);
 
+      // Synthetic linked-dept pair (the real maestro-coro depts were removed in migration
+      // 20260526180000; the linkedToDept mechanism itself still exists for any future use).
+      await prisma.department.create({
+        data: { value: "LINKED_TEST_MAESTRO", label: "Test Linked Maestro", color: "#000000", sortOrder: 999, linkedToDept: "ARTISTI_CORO_UOMINI" },
+      });
+
       const coroMember = await prisma.productionMember.create({
         data: { productionId: production.id, department: "ARTISTI_CORO_UOMINI", roleTitle: "Artisti del Coro (Uomini)" },
       });
       const maestroMember = await prisma.productionMember.create({
-        data: { productionId: production.id, department: "MAESTRO_CORO_UOMINI", roleTitle: "Maestro del Coro (Uomini)" },
+        data: { productionId: production.id, department: "LINKED_TEST_MAESTRO", roleTitle: "Test Linked Maestro" },
       });
 
       await prisma.odgEntry.create({
@@ -46,11 +52,14 @@ describe("applyLinkedDepts", () => {
     cleanupFn = cleanup;
     try {
       const { production, odg } = await seedMinimalProduction(prisma);
+      await prisma.department.create({
+        data: { value: "LINKED_TEST_MAESTRO", label: "Test Linked Maestro", color: "#000000", sortOrder: 999, linkedToDept: "ARTISTI_CORO_UOMINI" },
+      });
       const coroMember = await prisma.productionMember.create({
         data: { productionId: production.id, department: "ARTISTI_CORO_UOMINI", roleTitle: "Artisti del Coro (Uomini)" },
       });
       const maestroMember = await prisma.productionMember.create({
-        data: { productionId: production.id, department: "MAESTRO_CORO_UOMINI", roleTitle: "Maestro del Coro (Uomini)" },
+        data: { productionId: production.id, department: "LINKED_TEST_MAESTRO", roleTitle: "Test Linked Maestro" },
       });
       await prisma.odgEntry.createMany({
         data: [

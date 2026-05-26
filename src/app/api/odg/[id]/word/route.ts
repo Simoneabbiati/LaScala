@@ -160,14 +160,20 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           children: isExtras ? [
             new Paragraph({ children: [new TextRun({ text: entry.member.roleTitle, bold: true, size: 18 })] }),
             ...(entry.characterName ? [new Paragraph({ children: [new TextRun({ text: `× ${entry.characterName}`, italics: true, size: 15, color: "666666" })] })] : []),
-          ] : [
-            new Paragraph({ children: [new TextRun({ text: entry.member.person?.name ?? "—", bold: true, size: 18 })] }),
+          ] : entry.member.person?.name ? [
+            new Paragraph({ children: [new TextRun({ text: entry.member.person.name, bold: true, size: 18 })] }),
             new Paragraph({ children: [new TextRun({
               text: entry.member.department === "CAST"
                 ? (entry.characterName ?? entry.member.characterName ?? "")
                 : entry.member.roleTitle,
               italics: true, size: 15, color: "666666",
             })] }),
+          ] : [
+            // Section without person (Coro, Orchestra…) or unfilled role slot
+            new Paragraph({ children: [new TextRun({ text: entry.member.roleTitle, bold: true, size: 18 })] }),
+            ...(entry.member.conductorName ? [new Paragraph({ children: [new TextRun({
+              text: `M.o ${entry.member.conductorName}`, italics: true, size: 15, color: "666666",
+            })] })] : []),
           ],
         }),
         dataCell(`${entry.startTime} – ${entry.endTime}`),

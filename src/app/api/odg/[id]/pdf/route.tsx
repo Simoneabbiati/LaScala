@@ -135,13 +135,19 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
                     <Text style={styles.nameText}>{entry.member.roleTitle}</Text>
                     {entry.characterName ? <Text style={styles.roleText}>× {entry.characterName}</Text> : null}
                   </>
-                ) : (
+                ) : entry.member.person?.name ? (
                   <>
-                    <Text style={styles.nameText}>{entry.member.person?.name ?? "—"}</Text>
+                    <Text style={styles.nameText}>{entry.member.person.name}</Text>
                     {entry.member.department === "CAST"
                       ? <Text style={styles.roleText}>{entry.characterName ?? entry.member.characterName ?? ""}</Text>
                       : <Text style={styles.roleText}>{entry.member.roleTitle}</Text>
                     }
+                  </>
+                ) : (
+                  // Section without person (Coro, Orchestra…) or unfilled role slot
+                  <>
+                    <Text style={styles.nameText}>{entry.member.roleTitle}</Text>
+                    {entry.member.conductorName ? <Text style={styles.roleText}>M.o {entry.member.conductorName}</Text> : null}
                   </>
                 )}
               </View>
