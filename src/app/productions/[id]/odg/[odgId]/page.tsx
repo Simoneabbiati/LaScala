@@ -76,10 +76,15 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
 
   const addSession = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    const activity = sessionForm.activity;
+    const activity =
+      sessionForm.activity === "__custom__"
+        ? sessionForm.customActivity.trim()
+        : sessionForm.activity;
+    if (!activity) return;
+    const { customActivity: _ignored, ...rest } = sessionForm;
     const res = await fetch(`/api/odg/${odgId}/sessions`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...sessionForm, sortOrder: odg?.sessions.length ?? 0 }),
+      body: JSON.stringify({ ...rest, activity, sortOrder: odg?.sessions.length ?? 0 }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -503,7 +508,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                   </FormField>
                   <div className="flex gap-2">
                     <Button type="submit" size="sm">Aggiungi</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => setShowSessionForm(false)}>Annulla</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => { setSessionForm(emptySession()); setShowSessionForm(false); }}>Annulla</Button>
                   </div>
                 </form>
               )}
