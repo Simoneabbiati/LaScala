@@ -88,8 +88,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         hazards: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true } },
       },
     });
+    if (!updated) return NextResponse.json({ error: "Production not found" }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
+    if (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2025") {
+      return NextResponse.json({ error: "Production not found" }, { status: 404 });
+    }
     console.error("[PUT /api/productions/[id]/scheda]", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
