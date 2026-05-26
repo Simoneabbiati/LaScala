@@ -23,7 +23,7 @@ type Theatre = { id: string; name: string; city: string; locations: Location[] }
 type Production = { id: string; title: string; composer?: string; theatre: Theatre; members: Member[] };
 type OdgFull = { id: string; date: string; status?: string | null; notes?: string; extraEvents?: string; production: Production; sessions: OdgSession[]; entries: OdgEntry[] };
 
-const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "" });
+const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "", customActivity: "" });
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
 type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
