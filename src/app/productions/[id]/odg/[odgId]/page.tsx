@@ -283,6 +283,14 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
     }
     sessionGroups[groupIndex.get(key)!].sessions.push(s);
   }
+  for (const g of sessionGroups) {
+    g.sessions.sort((a, b) => a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime));
+  }
+  sessionGroups.sort((a, b) => {
+    if (a.locationId === null) return 1;
+    if (b.locationId === null) return -1;
+    return a.sessions[0].startTime.localeCompare(b.sessions[0].startTime);
+  });
   const showLocationHeaders = sessionGroups.length > 1 || (sessionGroups.length === 1 && sessionGroups[0].locationId !== null);
 
   const entryRow = (entry: OdgEntry, isExtras = false) => {
