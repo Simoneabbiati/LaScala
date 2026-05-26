@@ -26,7 +26,7 @@ type OdgFull = { id: string; date: string; status?: string | null; notes?: strin
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "", customActivity: "" });
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
-type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
+type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; customActivity: string };
 type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string; characterName: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
@@ -446,7 +446,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                   {showLocationHeaders && (
                     <div className="flex items-center gap-2 px-2 pt-2 pb-0.5">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
-                        {group.locationName ?? "Nessun luogo"}
+                        {group.locationName ?? "Senza luogo"}
                       </span>
                       <div className="flex-1 h-px bg-border" />
                     </div>
