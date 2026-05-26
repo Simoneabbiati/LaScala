@@ -8,19 +8,18 @@ export const DEFAULT_LOCATIONS = [
 ] as const;
 
 export const EXTRAS_TYPES = [
-  "Mime", "Mimi", "Comparse", "Acrobati",
+  "Mime", "Mimi", "Comparse", "Figuranti", "Acrobati",
   "Circensi", "Stuntman", "Danzatori", "Illusionista",
 ] as const;
 
 export const REPARTI_TECNICI_TYPES = [
   "Macchinisti", "Elettricisti", "Consollista", "Attrezzisti",
-  "Fonici", "Sartoria", "Trucco e Parrucco",
+  "Fonici", "Sartoria", "Trucco e Parrucco", "Logistica",
 ] as const;
 
 export const MAESTRI_COLLABORATORI_TYPES = [
   "Maestro di Sala", "Maestri di Palcoscenico", "Maestro alle Luci",
-  "Maestro ai Sovratitoli", "Maestro del Coro (Uomini)",
-  "Maestro del Coro (Donne)", "Maestro del Coro Voci Bianche",
+  "Maestro ai Sovratitoli",
 ] as const;
 
 export const COMPLESSI_ARTISTICI_TYPES = [

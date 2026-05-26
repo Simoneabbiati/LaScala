@@ -16,12 +16,21 @@ const TIPO_DEPTS_MAP = new Map<string, readonly string[]>([
 const SUBDEPT_VALUES = new Set([
   "ORCHESTRA", "COMPLESSO_MUSICALE_PALCOSCENICO", "ARTISTI_CORO_UOMINI", "ARTISTE_CORO_DONNE", "CORO_VOCI_BIANCHE", "CORPO_DI_BALLO",
   "MAESTRO_DI_SALA", "MAESTRI_DI_PALCOSCENICO", "MAESTRO_ALLE_LUCI", "MAESTRO_AI_SOVRATITOLI",
-  "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI", "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
+  "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI", "FONICI", "SARTORIA", "TRUCCO_PARRUCCO", "LOGISTICA",
 ]);
 
 // Departments where each member is a NAMED individual (not a whole section).
 // These show Nome/Email/Telefono alongside the Tipo dropdown in the roster form.
-const NAMED_TIPO_DEPTS = new Set(["MAESTRI_COLLABORATORI", "TEAM_CREATIVO"]);
+const NAMED_TIPO_DEPTS = new Set(["MAESTRI_COLLABORATORI", "TEAM_CREATIVO", "CAST_EXTRAS"]);
+
+// COMPLESSI_ARTISTICI sections that carry a conductor / maestro alongside the section.
+// Shown as an extra editable "Direttore / Maestro" block in the roster row.
+const CONDUCTOR_DEPTS = new Set([
+  "ARTISTI_CORO_UOMINI",
+  "ARTISTE_CORO_DONNE",
+  "CORO_VOCI_BIANCHE",
+  "COMPLESSO_MUSICALE_PALCOSCENICO",
+]);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +39,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { FormField } from "@/components/ui/form-field";
 
 type Person = { id: string; name: string; email?: string; phone?: string };
-type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; person: Person | null };
+type Member = { id: string; department: string; roleTitle: string; characterName?: string; notes?: string; conductorName?: string | null; conductorEmail?: string | null; conductorPhone?: string | null; person: Person | null };
 type Location = { id: string; name: string };
 type Theatre = { id: string; name: string; city: string; locations: Location[] };
 type TheatreOption = { id: string; name: string; city: string };
@@ -39,7 +48,7 @@ type Production = { id: string; title: string; composer?: string; startDate?: st
 
 
 type Dept = { id: string; value: string; label: string; color: string; group: string | null; sortOrder: number; isCustom: boolean; linkedToDept: string | null };
-type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string };
+type EditState = { memberId: string; personName: string; department: string; roleTitle: string; characterName: string; email: string; phone: string; conductorName: string; conductorEmail: string; conductorPhone: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
@@ -131,6 +140,7 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
   const startEdit = (m: Member) => setEditState({
     memberId: m.id, personName: m.person?.name ?? "", department: m.department,
     roleTitle: m.roleTitle, characterName: m.characterName ?? "", email: m.person?.email ?? "", phone: m.person?.phone ?? "",
+    conductorName: m.conductorName ?? "", conductorEmail: m.conductorEmail ?? "", conductorPhone: m.conductorPhone ?? "",
   });
 
   const saveEdit = async () => {
@@ -504,6 +514,16 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                   <Input type="email" value={editState.email} onChange={(e) => setEditState({ ...editState, email: e.target.value })} placeholder="Email" className="text-sm" />
                                   <Input value={editState.phone} onChange={(e) => setEditState({ ...editState, phone: e.target.value })} placeholder="Telefono" className="text-sm" />
                                 </div>
+                                {CONDUCTOR_DEPTS.has(editState.department) && (
+                                  <div className="space-y-2 rounded-md border border-input/60 bg-muted/30 p-2">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Direttore / Maestro</div>
+                                    <Input value={editState.conductorName} onChange={(e) => setEditState({ ...editState, conductorName: e.target.value })} placeholder="Nome e Cognome" className="text-sm" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <Input type="email" value={editState.conductorEmail} onChange={(e) => setEditState({ ...editState, conductorEmail: e.target.value })} placeholder="Email" className="text-sm" />
+                                      <Input value={editState.conductorPhone} onChange={(e) => setEditState({ ...editState, conductorPhone: e.target.value })} placeholder="Telefono" className="text-sm" />
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="flex gap-2">
                                   <Button size="sm" variant="ghost" className="text-success-foreground" onClick={saveEdit}><Check size={13} /> Salva</Button>
                                   <Button size="sm" variant="ghost" onClick={() => setEditState(null)}><X size={13} /> Annulla</Button>
@@ -512,7 +532,8 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                             );
                           }
 
-                          const hasDetails = !!(m.person?.email || m.person?.phone || m.notes);
+                          const hasConductorContact = !!(m.conductorEmail || m.conductorPhone);
+                          const hasDetails = !!(m.person?.email || m.person?.phone || m.notes || hasConductorContact);
                           return (
                             <React.Fragment key={m.id}>
                               <div
@@ -534,6 +555,9 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                     <span className="text-xs text-muted-foreground italic">{m.roleTitle}</span>
                                     {m.characterName && (
                                       <span className="text-xs text-foreground/70">· {m.characterName}</span>
+                                    )}
+                                    {m.conductorName && (
+                                      <span className="text-xs text-foreground/70">· M.o {m.conductorName}</span>
                                     )}
                                   </div>
                                 </div>
@@ -558,6 +582,23 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                       </a>
                                     )}
                                   </div>
+                                  {hasConductorContact && (
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border/60 pt-1.5 mt-0.5">
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium shrink-0">M.o {m.conductorName ?? ""}</span>
+                                      {m.conductorEmail && (
+                                        <a href={`mailto:${m.conductorEmail}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                                          {m.conductorEmail}
+                                        </a>
+                                      )}
+                                      {m.conductorPhone && (
+                                        <a href={`tel:${m.conductorPhone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+                                          {m.conductorPhone}
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
                                   {m.notes && <p className="text-xs text-muted-foreground italic">{m.notes}</p>}
                                 </div>
                               )}

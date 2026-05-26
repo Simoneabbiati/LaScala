@@ -77,6 +77,9 @@ export async function PATCH(
       roleTitle: body.roleTitle,
       characterName: body.characterName ?? null,
       notes: body.notes ?? null,
+      conductorName: body.conductorName ?? null,
+      conductorEmail: body.conductorEmail ?? null,
+      conductorPhone: body.conductorPhone ?? null,
     },
     include: { person: true },
   });

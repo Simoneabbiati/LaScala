@@ -6,7 +6,6 @@ export type PresetFigure =
 const ROLE_REGISTA               = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Regista",                      required: true };
 const ROLE_ASS_REGIA             = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Assistente alla Regia",        required: true };
 const ROLE_DIRETTORE             = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Direttore d'Orchestra",        required: true };
-const ROLE_DIR_COMPL             = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Direttore del Complesso Musicale di Palcoscenico", required: true };
 const ROLE_COSTUMISTA            = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Costumista",                   required: true };
 const ROLE_SCENOGRAFO            = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Scenografo",                   required: true };
 const ROLE_ASS_SCENOGRAFO        = { kind: "role" as const, department: "TEAM_CREATIVO", roleTitle: "Assistente alle Scene",        required: true };
@@ -52,7 +51,7 @@ export const ACTIVITY_PRESETS: Record<string, PresetFigure[]> = {
     ROLE_DIRETTORE,
     DEPT_CAST,
     DEPT_ORCHESTRA,
-    DEPT_COMPL_MUSICALE, ROLE_DIR_COMPL,
+    DEPT_COMPL_MUSICALE,
     DEPT_CORO_UOMINI, DEPT_CORO_DONNE,
     DEPT_CORO_VOCI_BIANCHE,
   ],

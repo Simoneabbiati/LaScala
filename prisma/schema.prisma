@@ -58,16 +58,21 @@ model Person {
 }
 
 model ProductionMember {
-  id            String     @id @default(cuid())
-  personId      String?
-  productionId  String
-  person        Person?    @relation(fields: [personId], references: [id], onDelete: SetNull)
-  production    Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
-  department    String     // TEAM_CREATIVO | CAST | ORCHESTRA | MAESTRI_COLLABORATORI | AREA_TECNICA
-  roleTitle     String     // e.g. "Direttore d'orchestra", "Regista", "Soprano"
-  characterName String?    // for CAST only, e.g. "Gulliver"
-  notes         String?
-  odgEntries    OdgEntry[]
+  id              String     @id @default(cuid())
+  personId        String?
+  productionId    String
+  person          Person?    @relation(fields: [personId], references: [id], onDelete: SetNull)
+  production      Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  department      String     // Department.value (e.g. "CAST", "ARTISTI_CORO_UOMINI", "MACCHINISTI")
+  roleTitle       String     // e.g. "Direttore d'orchestra", "Regista", "Soprano"
+  characterName   String?    // for CAST only, e.g. "Gulliver"
+  notes           String?
+  // Conductor / Maestro for COMPLESSI_ARTISTICI sections (Orchestra, Coro, etc.).
+  // null for non-section members.
+  conductorName   String?
+  conductorEmail  String?
+  conductorPhone  String?
+  odgEntries      OdgEntry[]
 }
 
 model Odg {
