@@ -41,14 +41,14 @@ model Production {
   asstStageManagerEmail String?
   asstStageManagerPhone String?
   createdAt             DateTime           @default(now())
+  plot                  String?
+  schedaNotes           String?
   members               ProductionMember[]
   odgs                  Odg[]
-  plot          String?
-  schedaNotes   String?
-  acts          ProductionAct[]
-  chorusRoles   ProductionChorusRole[]
-  interiors     ProductionInterior[]
-  hazards       ProductionHazard[]
+  acts                  ProductionAct[]
+  chorusRoles           ProductionChorusRole[]
+  interiors             ProductionInterior[]
+  hazards               ProductionHazard[]
 }
 
 // Department enum stored as String in SQLite
