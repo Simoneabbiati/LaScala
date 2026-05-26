@@ -44,6 +44,22 @@ describe("validateSchedaPayload", () => {
     if (!res.ok) expect(res.error).toMatch(/act/i);
   });
 
+  it("rejects act with whitespace-only title", () => {
+    const res = validateSchedaPayload({
+      ...validPayload,
+      acts: [{ title: "   ", description: null }],
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  it("rejects chorus role with whitespace-only name", () => {
+    const res = validateSchedaPayload({
+      ...validPayload,
+      chorusRoles: [{ name: "  " }],
+    });
+    expect(res.ok).toBe(false);
+  });
+
   it("rejects chorus role with name longer than 200 chars", () => {
     const res = validateSchedaPayload({
       ...validPayload,
@@ -64,6 +80,9 @@ describe("validateSchedaPayload", () => {
   it("rejects non-object input", () => {
     expect(validateSchedaPayload(null).ok).toBe(false);
     expect(validateSchedaPayload("x").ok).toBe(false);
+  });
+
+  it("rejects object with missing required keys", () => {
     expect(validateSchedaPayload({}).ok).toBe(false);
   });
 });

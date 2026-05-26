@@ -26,7 +26,7 @@ function isNullOrString(x: unknown): x is string | null {
   return x === null || typeof x === "string";
 }
 
-function validateList<T>(
+function validateList(
   raw: unknown,
   listName: string,
   itemValidator: (item: unknown, idx: number) => string | null,
@@ -44,7 +44,8 @@ function validateActItem(item: unknown): string | null {
   if (typeof item !== "object" || item === null) return "must be an object";
   const r = item as Record<string, unknown>;
   if (!isString(r.title)) return "title must be a string";
-  if (r.title.length < 1 || r.title.length > MAX_NAME) return `title must be 1-${MAX_NAME} chars`;
+  const trimmedTitle = r.title.trim();
+  if (trimmedTitle.length < 1 || trimmedTitle.length > MAX_NAME) return `title must be 1-${MAX_NAME} chars`;
   if (!isNullOrString(r.description)) return "description must be string or null";
   if (typeof r.description === "string" && r.description.length > MAX_DESC) {
     return `description must be at most ${MAX_DESC} chars`;
@@ -56,7 +57,8 @@ function validateNameItem(item: unknown): string | null {
   if (typeof item !== "object" || item === null) return "must be an object";
   const r = item as Record<string, unknown>;
   if (!isString(r.name)) return "name must be a string";
-  if (r.name.length < 1 || r.name.length > MAX_NAME) return `name must be 1-${MAX_NAME} chars`;
+  const trimmedName = r.name.trim();
+  if (trimmedName.length < 1 || trimmedName.length > MAX_NAME) return `name must be 1-${MAX_NAME} chars`;
   return null;
 }
 

@@ -487,11 +487,30 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
               {showSessionForm && (
                 <form onSubmit={addSession} className="pt-2 pb-1 space-y-2">
                   <FormField label="Tipo di attività">
-                    <select required value={sessionForm.activity} onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                    <select
+                      required
+                      value={sessionForm.activity}
+                      onChange={(e) => setSessionForm({ ...sessionForm, activity: e.target.value, customActivity: e.target.value === "__custom__" ? sessionForm.customActivity : "" })}
+                      className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background"
+                    >
                       <option value="">Seleziona attività…</option>
                       {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                      <option value="__custom__">Personalizza…</option>
                     </select>
                   </FormField>
+                  {sessionForm.activity === "__custom__" && (
+                    <FormField label="Nome attività">
+                      <Input
+                        autoFocus
+                        required
+                        type="text"
+                        placeholder="Nome attività personalizzata"
+                        value={sessionForm.customActivity}
+                        onChange={(e) => setSessionForm({ ...sessionForm, customActivity: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </FormField>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <FormField label="Ora inizio">
                       <Input required type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })} className="h-8 text-sm" />
