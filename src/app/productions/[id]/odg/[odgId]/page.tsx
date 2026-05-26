@@ -26,7 +26,7 @@ type OdgFull = { id: string; date: string; status?: string | null; notes?: strin
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "", customActivity: "" });
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
-type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; customActivity: string };
+type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
 type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string; characterName: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
@@ -81,7 +81,8 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
         ? sessionForm.customActivity.trim()
         : sessionForm.activity;
     if (!activity) return;
-    const { customActivity: _ignored, ...rest } = sessionForm;
+    const rest = { ...sessionForm };
+    delete (rest as { customActivity?: string }).customActivity;
     const res = await fetch(`/api/odg/${odgId}/sessions`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...rest, activity, sortOrder: odg?.sessions.length ?? 0 }),
