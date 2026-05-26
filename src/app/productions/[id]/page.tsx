@@ -18,6 +18,10 @@ const SUBDEPT_VALUES = new Set([
   "MAESTRO_DI_SALA", "MAESTRI_DI_PALCOSCENICO", "MAESTRO_ALLE_LUCI", "MAESTRO_AI_SOVRATITOLI",
   "MACCHINISTI", "ELETTRICISTI", "CONSOLLISTA", "ATTREZZISTI", "FONICI", "SARTORIA", "TRUCCO_PARRUCCO",
 ]);
+
+// Departments where each member is a NAMED individual (not a whole section).
+// These show Nome/Email/Telefono alongside the Tipo dropdown in the roster form.
+const NAMED_TIPO_DEPTS = new Set(["MAESTRI_COLLABORATORI", "TEAM_CREATIVO"]);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -370,12 +374,27 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                       )}
                     </FormField>
                     {TIPO_DEPTS_MAP.has(memberForm.department) ? (
-                      <FormField label="Tipo *">
-                        <select required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
-                          <option value="">Seleziona tipo…</option>
-                          {(TIPO_DEPTS_MAP.get(memberForm.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </FormField>
+                      <>
+                        <FormField label="Tipo *">
+                          <select required value={memberForm.roleTitle} onChange={(e) => setMemberForm({ ...memberForm, roleTitle: e.target.value })} className="w-full border border-input rounded-md px-2 py-1.5 text-sm bg-background">
+                            <option value="">Seleziona tipo…</option>
+                            {(TIPO_DEPTS_MAP.get(memberForm.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </FormField>
+                        {NAMED_TIPO_DEPTS.has(memberForm.department) && (
+                          <>
+                            <FormField label="Nome">
+                              <Input value={memberForm.personName} onChange={(e) => setMemberForm({ ...memberForm, personName: e.target.value })} placeholder="Nome e Cognome" className="h-8 text-sm" />
+                            </FormField>
+                            <FormField label="Email">
+                              <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} className="h-8 text-sm" />
+                            </FormField>
+                            <FormField label="Telefono">
+                              <Input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} className="h-8 text-sm" />
+                            </FormField>
+                          </>
+                        )}
+                      </>
                     ) : (
                       <>
                         <FormField label="Nome *">
@@ -465,10 +484,15 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                                   <option value="__CUSTOM__">+ Personalizzato…</option>
                                 </select>
                                 {TIPO_DEPTS_MAP.has(editState.department) ? (
-                                  <select value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
-                                    <option value="">Seleziona tipo…</option>
-                                    {(TIPO_DEPTS_MAP.get(editState.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
-                                  </select>
+                                  <>
+                                    <select value={editState.roleTitle} onChange={(e) => setEditState({ ...editState, roleTitle: e.target.value })} className="w-full border border-input rounded px-2 py-1.5 text-sm bg-background">
+                                      <option value="">Seleziona tipo…</option>
+                                      {(TIPO_DEPTS_MAP.get(editState.department) ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                    {NAMED_TIPO_DEPTS.has(editState.department) && (
+                                      <Input value={editState.personName} onChange={(e) => setEditState({ ...editState, personName: e.target.value })} placeholder="Nome" className="text-sm" />
+                                    )}
+                                  </>
                                 ) : (
                                   <>
                                     <Input value={editState.personName} onChange={(e) => setEditState({ ...editState, personName: e.target.value })} placeholder="Nome" className="text-sm" />
