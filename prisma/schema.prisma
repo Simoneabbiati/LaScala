@@ -43,6 +43,12 @@ model Production {
   createdAt             DateTime           @default(now())
   members               ProductionMember[]
   odgs                  Odg[]
+  plot          String?
+  schedaNotes   String?
+  acts          ProductionAct[]
+  chorusRoles   ProductionChorusRole[]
+  interiors     ProductionInterior[]
+  hazards       ProductionHazard[]
 }
 
 // Department enum stored as String in SQLite
@@ -149,4 +155,45 @@ model OperaCharacter {
   voiceType String?
 
   @@unique([operaId, name])
+}
+
+model ProductionAct {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  sortOrder    Int        @default(0)
+
+  @@index([productionId])
+}
+
+model ProductionChorusRole {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  name         String
+  sortOrder    Int        @default(0)
+
+  @@index([productionId])
+}
+
+model ProductionInterior {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  name         String
+  sortOrder    Int        @default(0)
+
+  @@index([productionId])
+}
+
+model ProductionHazard {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  name         String
+  sortOrder    Int        @default(0)
+
+  @@index([productionId])
 }
