@@ -7,7 +7,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const production = await prisma.production.findUnique({
     where: { id },
     select: {
-      id: true,
       plot: true,
       schedaNotes: true,
       acts: { orderBy: { sortOrder: "asc" }, select: { id: true, title: true, description: true } },
