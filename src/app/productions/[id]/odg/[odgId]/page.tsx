@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { groupEntriesByLocation } from "@/lib/entry-grouping";
+import { groupSessionsByLocation } from "@/lib/session-grouping";
 
 type Location = { id: string; name: string };
 type Person = { id: string; name: string };
@@ -279,26 +280,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const fullDeptOrder = [...deptOrder, ...entryCustomDepts];
   const entryGroups = groupEntriesByLocation(odg.entries);
 
-  // Group sessions by location for display
-  type SessionGroup = { locationId: string | null; locationName: string | null; sessions: OdgSession[] };
-  const sessionGroups: SessionGroup[] = [];
-  const groupIndex = new Map<string | null, number>();
-  for (const s of odg.sessions) {
-    const key = s.location?.id ?? null;
-    if (!groupIndex.has(key)) {
-      groupIndex.set(key, sessionGroups.length);
-      sessionGroups.push({ locationId: key, locationName: s.location?.name ?? null, sessions: [] });
-    }
-    sessionGroups[groupIndex.get(key)!].sessions.push(s);
-  }
-  for (const g of sessionGroups) {
-    g.sessions.sort((a, b) => a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime));
-  }
-  sessionGroups.sort((a, b) => {
-    if (a.locationId === null) return 1;
-    if (b.locationId === null) return -1;
-    return a.sessions[0].startTime.localeCompare(b.sessions[0].startTime);
-  });
+  const sessionGroups = groupSessionsByLocation(odg.sessions);
   const showLocationHeaders = sessionGroups.length > 1 || (sessionGroups.length === 1 && sessionGroups[0].locationId !== null);
 
   const entryRow = (entry: OdgEntry, isExtras = false) => {
@@ -454,7 +436,7 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                   {showLocationHeaders && (
                     <div className="flex items-center gap-2 px-2 pt-2 pb-0.5">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
-                        {group.locationName ?? "Senza luogo"}
+                        {group.locationName}
                       </span>
                       <div className="flex-1 h-px bg-border" />
                     </div>
