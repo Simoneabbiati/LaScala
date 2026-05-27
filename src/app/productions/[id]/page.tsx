@@ -31,7 +31,8 @@ const CONDUCTOR_DEPTS = new Set([
   "CORO_VOCI_BIANCHE",
   "COMPLESSO_MUSICALE_PALCOSCENICO",
 ]);
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -296,7 +297,12 @@ export default function ProductionPage({ params }: { params: Promise<{ id: strin
                   )}
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={openProdEdit}><Pencil size={15} /></Button>
+              <div className="flex items-center gap-2 shrink-0 mt-1">
+                <Link href={`/productions/${id}/scheda`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                  Scheda opera
+                </Link>
+                <Button variant="ghost" size="icon" onClick={openProdEdit}><Pencil size={15} /></Button>
+              </div>
             </div>
             {(production.stageManagerName || production.asstStageManagerName) && (
               <div className="mt-3 flex flex-wrap gap-2">
