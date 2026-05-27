@@ -163,15 +163,12 @@ describe("PUT /api/productions/[id]/scheda", () => {
     }
   });
 
-  it("returns 404 if production is deleted before re-fetch", async () => {
+  it("re-fetch after save returns the persisted shape (non-null)", async () => {
     const { prisma, cleanup, dbUrl } = await createTestPrisma();
     process.env.DATABASE_URL = dbUrl;
     cleanupFn = () => { cleanup(); delete process.env.DATABASE_URL; };
     try {
       const { production } = await seedMinimalProduction(prisma);
-      // Pre-check the production exists; we don't actually delete it before
-      // the request — instead this test exercises the standard happy path
-      // and is a sanity check that the new null-guard doesn't regress 200s.
       const res = await PUT(makePutReq(fullPayload), { params: Promise.resolve({ id: production.id }) });
       expect(res.status).toBe(200);
       const json = await res.json();

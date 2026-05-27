@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { renderToBuffer, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
+import { sortSessionsLikeProgram } from "@/lib/session-grouping";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -109,7 +110,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
           <View style={styles.overviewWrapper}>
             <Text style={styles.overviewTitle}>PROGRAMMA DEL GIORNO</Text>
             <View style={styles.overview}>
-              {odg.sessions.map((s) => (
+              {sortSessionsLikeProgram(odg.sessions).map((s) => (
                 <Text key={s.id} style={styles.overviewRow}>
                   {s.startTime} - {s.endTime}  {s.activity}{s.location ? `  (${s.location.name})` : ""}
                 </Text>

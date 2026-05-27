@@ -17,7 +17,7 @@ export default function StringListEditor({ label, items, onChange, placeholder }
     onChange(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   };
   const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-  const add = () => onChange([...items, { name: "" }]);
+  const add = () => onChange([...items, { id: `_new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: "" }]);
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= items.length) return;

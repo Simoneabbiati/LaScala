@@ -5,6 +5,7 @@ import {
   TextRun, HeadingLevel, AlignmentType, WidthType, BorderStyle,
   ShadingType, convertInchesToTwip, PageOrientation,
 } from "docx";
+import { sortSessionsLikeProgram } from "@/lib/session-grouping";
 
 function hexToDocxColor(hex: string): string {
   return hex.replace("#", "");
@@ -120,7 +121,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     const sessionTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: thinBorder, insideVertical: noBorder },
-      rows: odg.sessions.map((s) =>
+      rows: sortSessionsLikeProgram(odg.sessions).map((s) =>
         new TableRow({
           children: [
             new TableCell({
