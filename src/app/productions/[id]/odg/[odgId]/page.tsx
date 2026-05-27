@@ -26,7 +26,7 @@ type OdgFull = { id: string; date: string; status?: string | null; notes?: strin
 const emptySession = () => ({ startTime: "", endTime: "", activity: "", locationId: "", customActivity: "" });
 const emptyEntry = () => ({ memberId: "", startTime: "", endTime: "", activity: "", locationId: "", notes: "", characterName: "" });
 
-type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string };
+type SessionEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; customActivity: string };
 type EntryEdit = { id: string; startTime: string; endTime: string; activity: string; locationId: string; notes: string; characterName: string };
 type ConfirmState = { open: boolean; title: string; description: string; onConfirm: () => void };
 const defaultConfirm: ConfirmState = { open: false, title: "", description: "", onConfirm: () => {} };
@@ -144,9 +144,16 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
   const saveSession = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!editSession) return;
+    const activity =
+      editSession.activity === "__custom__"
+        ? editSession.customActivity.trim()
+        : editSession.activity;
+    if (!activity) return;
+    const rest = { ...editSession };
+    delete (rest as { customActivity?: string }).customActivity;
     await fetch(`/api/odg/${odgId}/sessions/${editSession.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editSession),
+      body: JSON.stringify({ ...rest, activity }),
     });
     setEditSession(null);
     load();
@@ -460,9 +467,25 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                             <Input type="time" value={editSession.startTime} onChange={(e) => setEditSession({ ...editSession, startTime: e.target.value })} className="h-7 text-sm" />
                             <Input type="time" value={editSession.endTime} onChange={(e) => setEditSession({ ...editSession, endTime: e.target.value })} className="h-7 text-sm" />
                           </div>
-                          <select value={editSession.activity} onChange={(e) => setEditSession({ ...editSession, activity: e.target.value })} className="w-full border border-input rounded px-2 py-1 text-sm bg-background">
+                          <select
+                            value={editSession.activity}
+                            onChange={(e) => setEditSession({ ...editSession, activity: e.target.value, customActivity: e.target.value === "__custom__" ? editSession.customActivity : "" })}
+                            className="w-full border border-input rounded px-2 py-1 text-sm bg-background"
+                          >
                             {ACTIVITIES.map((a) => <option key={a} value={a}>{a}</option>)}
+                            <option value="__custom__">Personalizza…</option>
                           </select>
+                          {editSession.activity === "__custom__" && (
+                            <Input
+                              autoFocus
+                              required
+                              type="text"
+                              placeholder="Nome attività personalizzata"
+                              value={editSession.customActivity}
+                              onChange={(e) => setEditSession({ ...editSession, customActivity: e.target.value })}
+                              className="h-7 text-sm"
+                            />
+                          )}
                           <select value={editSession.locationId} onChange={(e) => setEditSession({ ...editSession, locationId: e.target.value })} className="w-full border border-input rounded px-2 py-1 text-sm bg-background">
                             <option value="">—</option>
                             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -480,7 +503,17 @@ export default function OdgPage({ params }: { params: Promise<{ id: string; odgI
                         <span className="font-medium flex-1 break-words min-w-0">{s.activity}</span>
                         {!showLocationHeaders && s.location && <span className="text-muted-foreground text-xs shrink-0">({s.location.name})</span>}
                         <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditSession({ id: s.id, startTime: s.startTime, endTime: s.endTime, activity: s.activity, locationId: s.location?.id ?? "" })}>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => {
+                            const isCustom = !(ACTIVITIES as readonly string[]).includes(s.activity);
+                            setEditSession({
+                              id: s.id,
+                              startTime: s.startTime,
+                              endTime: s.endTime,
+                              activity: isCustom ? "__custom__" : s.activity,
+                              customActivity: isCustom ? s.activity : "",
+                              locationId: s.location?.id ?? "",
+                            });
+                          }}>
                             <Pencil size={11} />
                           </Button>
                           <Button size="icon" variant="ghost-destructive" className="h-6 w-6" onClick={() => deleteSession(s.id)}>
