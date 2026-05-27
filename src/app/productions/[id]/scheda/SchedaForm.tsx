@@ -44,7 +44,7 @@ export default function SchedaForm({ productionId, initial, opera }: Props) {
     setActs((curr) => curr.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
   };
   const removeAct = (i: number) => setActs((curr) => curr.filter((_, idx) => idx !== i));
-  const addAct = () => setActs((curr) => [...curr, { title: "", description: null }]);
+  const addAct = () => setActs((curr) => [...curr, { id: `_new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, title: "", description: null }]);
   const moveAct = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     setActs((curr) => {
